@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { useToast } from '../../context/ToastContext';
 import { validateInventoryForm } from '../../utils/validators';
-import { compressMultipleImages } from '../../services/imageCompression';
+import { compressImage, compressMultipleImages, validateImageFile } from '../../services/imageCompression';
+import { getSafeImageUrl } from '../../utils/formatters';
 import {
   BRAND_PRESETS,
   STORAGE_PRESETS,
@@ -10,10 +11,10 @@ import {
   CONDITION_PRESETS,
   STATUS_PRESETS
 } from '../../data/sampleInventory';
-import { X, Save, Upload, Trash2, Smartphone, DollarSign, Shield, Info } from 'lucide-react';
+import { X, Save, Upload, Trash2, Smartphone, DollarSign, Shield, Info, RotateCw } from 'lucide-react';
 
 export const EditInventoryModal = ({ item, isOpen, onClose }) => {
-  const { inventory, updateInventoryItem, uploadDevicePhoto, settings } = useInventory();
+  const { inventory, updateInventoryItem, uploadDevicePhoto, storageMode, settings } = useInventory();
   const { showError, showWarning, showSuccess } = useToast();
 
   const [formData, setFormData] = useState({});
@@ -69,44 +70,44 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
 
     setUploadingPhoto(true);
     try {
-      const { results, errors: compErrors } = await compressMultipleImages(files);
+      let currentPhotos = [...(formData.photo_urls || [])];
 
-      if (compErrors && compErrors.length > 0) {
-        showWarning(compErrors.join(' | '), 'Image Notice');
-      }
-
-      if (results && results.length > 0) {
-        let currentPhotos = [...(formData.photo_urls || [])];
-
-        for (const res of results) {
-          try {
-            // Upload directly to Google Drive via uploadPhoto action
-            const uploadRes = await uploadDevicePhoto({
-              inventory_id: item.inventory_id,
-              base64_data: res.base64,
-              mime_type: res.mimeType,
-              file_name: `${item.inventory_id}_${Date.now()}.jpg`
-            });
-
-            if (uploadRes && uploadRes.success && uploadRes.file_url) {
-              if (!currentPhotos.includes(uploadRes.file_url)) {
-                currentPhotos.push(uploadRes.file_url);
-              }
-            } else if (uploadRes && uploadRes.photo_urls && Array.isArray(uploadRes.photo_urls)) {
-              currentPhotos = uploadRes.photo_urls;
-            } else {
-              // Fallback to local data URL if offline
-              currentPhotos.push(res.dataUrl);
-            }
-          } catch (uploadErr) {
-            console.warn('Direct upload error, falling back to preview:', uploadErr);
-            currentPhotos.push(res.dataUrl);
-          }
+      for (const file of files) {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          showWarning(validation.error, 'Invalid Image');
+          continue;
         }
 
-        setPhotoPreviews(currentPhotos);
-        setFormData(prev => ({ ...prev, photo_urls: currentPhotos }));
+        const compressed = await compressImage(file, 1200, 1200, 0.8);
+
+        if (storageMode === 'google') {
+          const uploadRes = await uploadDevicePhoto({
+            inventory_id: item.inventory_id,
+            base64_data: compressed.base64,
+            mime_type: compressed.mimeType,
+            file_name: `${item.inventory_id}_${Date.now()}.jpg`
+          });
+
+          if (uploadRes && uploadRes.success && (uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url)) {
+            const driveUrl = uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url;
+            if (!currentPhotos.includes(driveUrl)) {
+              currentPhotos.push(driveUrl);
+            }
+            showSuccess(`Photo "${file.name}" uploaded to Google Drive!`, 'Photo Uploaded');
+          } else {
+            throw new Error(uploadRes?.error || 'Photo upload to Google Drive failed.');
+          }
+        } else {
+          // Local storage mode
+          if (!currentPhotos.includes(compressed.dataUrl)) {
+            currentPhotos.push(compressed.dataUrl);
+          }
+        }
       }
+
+      setPhotoPreviews(currentPhotos);
+      setFormData(prev => ({ ...prev, photo_urls: currentPhotos }));
     } catch (err) {
       console.error('Error processing photo upload:', err);
       showError(err.message || 'Failed to process image file.', 'Upload Error');
@@ -124,14 +125,27 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (uploadingPhoto) {
+      showWarning('Please wait for photo upload to finish.', 'Uploading Photo');
+      return;
+    }
+
     const validation = validateInventoryForm(formData, inventory, item.inventory_id);
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;
     }
 
+    // Filter out any blob: URLs
+    const cleanPhotos = (formData.photo_urls || []).filter(u => u && !u.startsWith('blob:'));
+    const finalPayload = {
+      ...formData,
+      photo_urls: cleanPhotos
+    };
+
     setSaving(true);
-    const result = await updateInventoryItem(formData);
+    const result = await updateInventoryItem(finalPayload);
     setSaving(false);
 
     if (result.success) {
@@ -403,7 +417,7 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                       border: '1px solid var(--border-subtle)'
                     }}
                   >
-                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={getSafeImageUrl(url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <button
                       type="button"
                       onClick={() => removePhoto(idx)}
@@ -438,14 +452,23 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: 'pointer',
+                    cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
                     color: 'var(--text-muted)',
                     gap: '4px',
                     fontSize: '0.7rem'
                   }}
                 >
-                  <Upload size={18} />
-                  <span>{uploadingPhoto ? 'Uploading...' : '+ Photo'}</span>
+                  {uploadingPhoto ? (
+                    <>
+                      <RotateCw size={18} className="animate-spin" color="var(--primary-600)" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={18} />
+                      <span>+ Photo</span>
+                    </>
+                  )}
                   <input
                     type="file"
                     multiple

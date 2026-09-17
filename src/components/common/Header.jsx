@@ -9,9 +9,9 @@ import {
   RotateCw,
   Lock,
   HardDrive,
-  Database
+  Database,
+  AlertCircle
 } from 'lucide-react';
-
 
 export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
   const {
@@ -19,11 +19,119 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
     setSearchQuery,
     fetchInventory,
     refreshing,
-    connectionMode,
+    storageMode,
+    connectionStatus,
     settings
   } = useInventory();
   const { isDark, toggleTheme } = useTheme();
   const { logout, isPinRequired } = useAuth();
+
+  // Dynamic status rendering for pill
+  const renderConnectionPill = () => {
+    if (storageMode === 'google') {
+      if (connectionStatus?.state === 'connected') {
+        return (
+          <div
+            onClick={() => setCurrentTab('settings')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'var(--status-available-bg)',
+              color: 'var(--status-available-text)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: '1px solid var(--status-available-border)'
+            }}
+            title="Google Sheets + Drive Database Active (Click to open Settings)"
+          >
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
+            <Database size={13} />
+            <span className="hide-mobile">Google Cloud</span>
+          </div>
+        );
+      }
+
+      if (connectionStatus?.state === 'checking') {
+        return (
+          <div
+            onClick={() => setCurrentTab('settings')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'rgba(234, 179, 8, 0.15)',
+              color: '#eab308',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: '1px solid rgba(234, 179, 8, 0.3)'
+            }}
+            title="Connecting to Google Cloud..."
+          >
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#eab308', display: 'inline-block' }} />
+            <RotateCw size={13} className="animate-spin" />
+            <span className="hide-mobile">Connecting...</span>
+          </div>
+        );
+      }
+
+      // Failed state
+      return (
+        <div
+          onClick={() => setCurrentTab('settings')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-full)',
+            backgroundColor: 'var(--status-danger-bg)',
+            color: 'var(--status-danger-text)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: '1px solid var(--status-danger-border)'
+          }}
+          title={`Google Cloud Connection Failed: ${connectionStatus?.error || 'Click to view Settings'}`}
+        >
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+          <AlertCircle size={13} />
+          <span className="hide-mobile">Connection Failed</span>
+        </div>
+      );
+    }
+
+    // Local Storage Mode
+    return (
+      <div
+        onClick={() => setCurrentTab('settings')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 10px',
+          borderRadius: 'var(--radius-full)',
+          backgroundColor: 'var(--bg-subtle)',
+          color: 'var(--text-secondary)',
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          border: '1px solid var(--border-subtle)'
+        }}
+        title="Local Storage Database Active (Click to configure Google Cloud)"
+      >
+        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--text-muted)', display: 'inline-block' }} />
+        <HardDrive size={13} />
+        <span className="hide-mobile">Local Storage</span>
+      </div>
+    );
+  };
 
   return (
     <header
@@ -78,49 +186,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
       {/* Right Controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {/* Backend Connection Indicator Pill */}
-        <div
-          onClick={() => setCurrentTab('settings')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-full)',
-            backgroundColor:
-              connectionMode === 'google'
-                ? 'var(--status-available-bg)'
-                : 'var(--bg-subtle)',
-            color:
-              connectionMode === 'google'
-                ? 'var(--status-available-text)'
-                : 'var(--text-secondary)',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            border: `1px solid ${
-              connectionMode === 'google'
-                ? 'var(--status-available-border)'
-                : 'var(--border-subtle)'
-            }`
-          }}
-          title={
-            connectionMode === 'google'
-              ? 'Connected to Google Sheets & Drive'
-              : 'Running in Local Storage / Demo Mode (Click to configure Google Sheets)'
-          }
-        >
-          {connectionMode === 'google' ? (
-            <>
-              <Database size={13} />
-              <span className="hide-mobile">Google Cloud</span>
-            </>
-          ) : (
-            <>
-              <HardDrive size={13} />
-              <span className="hide-mobile">Local Mode</span>
-            </>
-          )}
-        </div>
+        {renderConnectionPill()}
 
         {/* Refresh button */}
         <button

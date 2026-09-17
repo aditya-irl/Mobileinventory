@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { api } from '../services/api';
+import { PERMANENT_GOOGLE_APPS_SCRIPT_URL, DEFAULT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
 
 import {
   Settings as SettingsIcon,
@@ -15,67 +15,105 @@ import {
   Download,
   Upload,
   RefreshCw,
+  RotateCw,
   CheckCircle2,
   AlertCircle,
+  HardDrive,
   ExternalLink,
-  HelpCircle
+  HelpCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export const Settings = () => {
-  const { settings, updateSettings, inventory, resetToSampleData } = useInventory();
+  const {
+    settings,
+    updateSettings,
+    storageMode,
+    connectionStatus,
+    switchToLocalStorage,
+    retryConnection,
+    testConnection,
+    inventory,
+    resetToSampleData
+  } = useInventory();
   const { isPinRequired, setIsPinRequired, updatePin } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
-  const [apiUrl, setApiUrl] = useState(settings.apiUrl || '');
+  const [apiUrl] = useState(PERMANENT_GOOGLE_APPS_SCRIPT_URL);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [storeName, setStoreName] = useState(settings.storeName || 'PhoneVault Pro');
   const [currency, setCurrency] = useState(settings.currency || '₹');
-  
+
   const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [localTestResult, setLocalTestResult] = useState(null);
 
   const [oldPin, setOldPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
-  // Test connection to Google Apps Script
-  const handleTestConnection = async () => {
-    if (!apiUrl.trim()) {
-      showInfo('No URL provided. The system is operating in Local Storage / Offline Demo Mode.');
-      setConnectionStatus({ success: true, mode: 'local', message: 'Local Storage Database Active' });
-      return;
-    }
-
-    setTestingConnection(true);
-    setConnectionStatus(null);
+  // Copy API URL to clipboard
+  const handleCopyUrl = async () => {
     try {
-      const res = await api.testConnection(apiUrl.trim());
+      await navigator.clipboard.writeText(PERMANENT_GOOGLE_APPS_SCRIPT_URL);
+      setCopiedUrl(true);
+      showSuccess('Google Apps Script Web App URL copied to clipboard!', 'Copied');
+      setTimeout(() => setCopiedUrl(false), 2500);
+    } catch (e) {
+      showError('Failed to copy to clipboard.');
+    }
+  };
+
+  // Test connection to permanent Google Apps Script
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setLocalTestResult(null);
+
+    try {
+      const res = await testConnection(PERMANENT_GOOGLE_APPS_SCRIPT_URL);
       if (res.success) {
-        const msg = res.message || 'Google Sheets connection successful';
-        setConnectionStatus({ success: true, mode: 'google', message: msg });
-        showSuccess(msg);
+        const msg = res.message || 'Google Sheets + Drive Database Active';
+        setLocalTestResult({
+          success: true,
+          mode: 'google',
+          message: `Google Cloud Connected — ${msg}`
+        });
+        showSuccess('Google Cloud Connected successfully!', 'Connected');
       } else {
         const errMsg = res.error || 'Connection failed. Please check permissions.';
-        setConnectionStatus({ success: false, error: errMsg });
-        showError(errMsg);
+        setLocalTestResult({
+          success: false,
+          mode: 'google',
+          error: `Connection Failed: ${errMsg}`
+        });
+        showError(errMsg, 'Connection Failed');
       }
     } catch (err) {
-      setConnectionStatus({ success: false, error: err.message });
-      showError('Connection failed: ' + err.message);
+      const errMsg = err.message || 'Connection failed';
+      setLocalTestResult({
+        success: false,
+        mode: 'google',
+        error: `Connection Failed: ${errMsg}`
+      });
+      showError(errMsg, 'Connection Failed');
     } finally {
       setTestingConnection(false);
     }
   };
 
-
   // Save general settings
   const handleSaveSettings = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    setLocalTestResult(null);
+
     updateSettings({
-      apiUrl: apiUrl.trim(),
+      apiUrl: PERMANENT_GOOGLE_APPS_SCRIPT_URL,
+      storageMode: 'google',
       storeName: storeName.trim(),
       currency: currency.trim()
     });
-    showSuccess('Settings updated successfully!');
+
+    showSuccess('Configuration saved! Synchronizing with Google Cloud...', 'Settings Saved');
   };
 
   // Update PIN
@@ -143,7 +181,7 @@ export const Settings = () => {
         
         {/* Google Apps Script & Sheets Integration */}
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
@@ -167,45 +205,171 @@ export const Settings = () => {
               </div>
             </div>
 
-            <div
-              style={{
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: apiUrl ? 'var(--status-available-bg)' : 'var(--bg-subtle)',
-                color: apiUrl ? 'var(--status-available-text)' : 'var(--text-secondary)',
-                fontSize: '0.75rem',
-                fontWeight: 700
-              }}
-            >
-              {apiUrl ? 'Cloud Mode' : 'Local Storage Mode'}
-            </div>
+            {/* Top Right Mode / Connection Badge */}
+            {storageMode === 'google' ? (
+              connectionStatus?.state === 'connected' ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    backgroundColor: 'var(--status-available-bg)',
+                    color: 'var(--status-available-text)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid var(--status-available-border)'
+                  }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
+                  <span>Google Cloud Connected</span>
+                </div>
+              ) : connectionStatus?.state === 'checking' ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    color: '#eab308',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid rgba(234, 179, 8, 0.3)'
+                  }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#eab308', display: 'inline-block' }} />
+                  <RotateCw size={12} className="animate-spin" />
+                  <span>Connecting...</span>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    backgroundColor: 'var(--status-danger-bg)',
+                    color: 'var(--status-danger-text)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid var(--status-danger-border)'
+                  }}
+                >
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                  <span>Connection Failed</span>
+                </div>
+              )
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: 'var(--bg-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  border: '1px solid var(--border-subtle)'
+                }}
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: 'var(--text-muted)', display: 'inline-block' }} />
+                <span>Local Storage Mode</span>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">
-              <span>Google Apps Script Web App Deployment URL</span>
-            </label>
-            <input
-              type="url"
-              className="input"
-              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-              value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label className="form-label" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>Google Apps Script Web App Deployment URL</span>
+                <span
+                  style={{
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)'
+                  }}
+                >
+                  <Lock size={10} /> Locked & Connected
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={handleCopyUrl}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary-600)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                {copiedUrl ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+                <span>{copiedUrl ? 'Copied URL!' : 'Copy URL'}</span>
+              </button>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                readOnly
+                className="input"
+                value={PERMANENT_GOOGLE_APPS_SCRIPT_URL}
+                style={{
+                  backgroundColor: 'var(--bg-subtle)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'default',
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                  paddingRight: '36px'
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)'
+                }}
+                title="Endpoint permanently locked"
+              >
+                <Lock size={14} />
+              </div>
+            </div>
+
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Leave blank to run in offline / local storage mode.
+              This Google Cloud Apps Script API endpoint is permanent and locked for PhoneVault Pro.
             </div>
           </div>
 
-          {/* Connection Status Banner */}
-          {connectionStatus && (
+          {/* Test Connection Result Banner (when Test button clicked) */}
+          {localTestResult && (
             <div
               style={{
                 padding: '12px 16px',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: connectionStatus.success ? 'var(--status-available-bg)' : 'var(--status-danger-bg)',
-                border: `1px solid ${connectionStatus.success ? 'var(--status-available-border)' : 'var(--status-danger-border)'}`,
-                color: connectionStatus.success ? 'var(--status-available-text)' : 'var(--status-danger-text)',
+                backgroundColor: localTestResult.success ? 'var(--status-available-bg)' : 'var(--status-danger-bg)',
+                border: `1px solid ${localTestResult.success ? 'var(--status-available-border)' : 'var(--status-danger-border)'}`,
+                color: localTestResult.success ? 'var(--status-available-text)' : 'var(--status-danger-text)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -214,8 +378,111 @@ export const Settings = () => {
                 marginTop: '12px'
               }}
             >
-              {connectionStatus.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-              <span>{connectionStatus.message || connectionStatus.error}</span>
+              {localTestResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              <span>{localTestResult.message || localTestResult.error}</span>
+            </div>
+          )}
+
+          {/* Live Backend Connection Status Banner (when not overriding with test result) */}
+          {!localTestResult && (
+            <div style={{ marginTop: '12px' }}>
+              {storageMode === 'google' ? (
+                connectionStatus?.state === 'connected' ? (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--status-available-bg)',
+                      border: '1px solid var(--status-available-border)',
+                      color: 'var(--status-available-text)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Google Sheets + Drive Database Active</span>
+                  </div>
+                ) : connectionStatus?.state === 'checking' ? (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                      border: '1px solid rgba(234, 179, 8, 0.3)',
+                      color: '#eab308',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    <RotateCw size={16} className="animate-spin" />
+                    <span>Connecting to Google Cloud backend...</span>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--status-danger-bg)',
+                      border: '1px solid var(--status-danger-border)',
+                      color: 'var(--status-danger-text)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      fontSize: '0.8125rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                      <AlertCircle size={16} />
+                      <span>Google Cloud Connection Failed</span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', opacity: 0.9, lineHeight: 1.4 }}>
+                      {connectionStatus?.error || 'Unable to connect to Google Sheets backend. Verify that the URL is correct and deployed with access set to Anyone.'}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={retryConnection}
+                        style={{ fontSize: '0.75rem', height: '30px', padding: '0 10px' }}
+                      >
+                        <RotateCw size={13} /> Retry Connection
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-subtle btn-sm"
+                        onClick={switchToLocalStorage}
+                        style={{ fontSize: '0.75rem', height: '30px', padding: '0 10px' }}
+                      >
+                        Continue in Local Storage Mode
+                      </button>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <HardDrive size={16} />
+                  <span>Local Storage Database Active</span>
+                </div>
+              )}
             </div>
           )}
 

@@ -356,14 +356,22 @@ function getDriveRootFolder() {
     if (rootFolders.hasNext()) {
       return rootFolders.next();
     }
-    return DriveApp.createFolder(CONFIG.DRIVE_ROOT_FOLDER);
+    const newRoot = DriveApp.createFolder(CONFIG.DRIVE_ROOT_FOLDER);
+    try {
+      newRoot.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {}
+    return newRoot;
   } catch (err) {
     console.warn('Fallback to Drive root folder:', err);
     return DriveApp.getRootFolder();
   }
 }
 
-function getDriveImageFolder(inventoryId) {
+/**
+ * Single persistent configured folder for all product photos
+ * Creates once and reuses for future uploads.
+ */
+function getDriveImageFolder() {
   const rootFolder = getDriveRootFolder();
   let imageFolder;
 
@@ -376,19 +384,13 @@ function getDriveImageFolder(inventoryId) {
         imageFolder = imageFolders.next();
       } else {
         imageFolder = rootFolder.createFolder(CONFIG.DRIVE_IMAGES_SUBFOLDER);
-      }
-    }
-
-    if (inventoryId) {
-      const itemFolders = imageFolder.getFoldersByName(inventoryId);
-      if (itemFolders.hasNext()) {
-        return itemFolders.next();
-      } else {
-        return imageFolder.createFolder(inventoryId);
+        try {
+          imageFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (e) {}
       }
     }
   } catch (err) {
-    console.warn('Error creating subfolder, using root:', err);
+    console.warn('Error creating image folder, using root:', err);
     return rootFolder;
   }
 
@@ -405,6 +407,9 @@ function getDrivePurchaseFolder(purchaseId) {
       purchaseFolder = purchaseFolders.next();
     } else {
       purchaseFolder = rootFolder.createFolder(CONFIG.DRIVE_PURCHASES_SUBFOLDER);
+      try {
+        purchaseFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {}
     }
 
     if (purchaseId) {
@@ -1130,7 +1135,7 @@ function handlePhotoUpload(data) {
 
   let targetFolder;
   try {
-    targetFolder = getDriveImageFolder(inventoryId !== 'UNASSIGNED' ? inventoryId : null);
+    targetFolder = getDriveImageFolder();
   } catch (driveErr) {
     return {
       success: false,
@@ -1156,7 +1161,7 @@ function handlePhotoUpload(data) {
 
   const fileId = file.getId();
   const fileUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
-  const thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
+  const thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1200';
 
   let updatedPhotoUrls = [fileUrl];
 
@@ -1213,7 +1218,9 @@ function handlePhotoUpload(data) {
     success: true,
     message: 'Photo uploaded successfully',
     file_id: fileId,
+    fileId: fileId,
     file_url: fileUrl,
+    url: fileUrl,
     thumbnail_url: thumbnailUrl,
     photo_urls: updatedPhotoUrls
   };
@@ -1227,7 +1234,7 @@ function uploadProductImages(inventoryId, imageList) {
     return { success: true, urls: [] };
   }
 
-  const targetFolder = getDriveImageFolder(inventoryId);
+  const targetFolder = getDriveImageFolder();
   const uploadedUrls = [];
 
   for (let i = 0; i < imageList.length; i++) {

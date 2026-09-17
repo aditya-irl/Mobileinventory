@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { api, getApiUrl } from '../services/api';
+import { api, getApiUrl, getStorageConfig, DEFAULT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
 import { useToast } from './ToastContext';
 import confetti from 'canvas-confetti';
 
@@ -8,31 +8,38 @@ const InventoryContext = createContext();
 const SETTINGS_STORAGE_KEY = 'phonevault_settings_v1';
 
 export const InventoryProvider = ({ children }) => {
-  const { showSuccess, showError, showWarning } = useToast();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
 
   const [inventory, setInventory] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [connectionMode, setConnectionMode] = useState(() => {
-    const url = getApiUrl();
-    return url ? 'google' : 'local';
+
+  // Initialize centralized storage configuration
+  const initialConfig = getStorageConfig();
+  const [storageMode, setStorageMode] = useState(initialConfig.mode);
+  const [settings, setSettings] = useState({
+    storeName: initialConfig.storeName,
+    currency: initialConfig.currency,
+    apiUrl: initialConfig.apiUrl,
+    storageMode: initialConfig.mode,
+    defaultStatus: initialConfig.defaultStatus || 'Available',
+    lowStockThreshold: initialConfig.lowStockThreshold || 3
   });
 
-  // Settings State
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      // ignore
+  // Centralized live connection state
+  const [connectionStatus, setConnectionStatus] = useState(() => {
+    if (initialConfig.mode === 'local') {
+      return {
+        state: 'local',
+        mode: 'local',
+        message: 'Local Storage Database Active'
+      };
     }
     return {
-      storeName: import.meta.env.VITE_APP_NAME || 'PhoneVault Pro',
-      currency: import.meta.env.VITE_CURRENCY_SYMBOL || '₹',
-      apiUrl: import.meta.env.VITE_API_URL || '',
-      defaultStatus: 'Available',
-      lowStockThreshold: 3
+      state: 'checking',
+      mode: 'google',
+      message: 'Connecting to Google Cloud...'
     };
   });
 
@@ -50,9 +57,45 @@ export const InventoryProvider = ({ children }) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
 
-    const activeUrl = getApiUrl();
-    if (activeUrl) {
-      setConnectionMode('google');
+    const config = getStorageConfig();
+    const currentMode = config.mode;
+    setStorageMode(currentMode);
+
+    if (currentMode === 'local') {
+      setConnectionStatus({
+        state: 'local',
+        mode: 'local',
+        message: 'Local Storage Database Active'
+      });
+
+      try {
+        const [invRes, purRes] = await Promise.all([
+          api.getInventory(),
+          api.getPurchases()
+        ]);
+
+        if (invRes.success && Array.isArray(invRes.data)) {
+          setInventory(invRes.data);
+        }
+        if (purRes.success && Array.isArray(purRes.data)) {
+          setPurchases(purRes.data);
+        }
+      } catch (err) {
+        showError(err.message || 'Error communicating with local database.');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+      return;
+    }
+
+    // Google Cloud mode
+    if (!isSilent) {
+      setConnectionStatus({
+        state: 'checking',
+        mode: 'google',
+        message: 'Connecting to Google Cloud...'
+      });
     }
 
     try {
@@ -63,16 +106,40 @@ export const InventoryProvider = ({ children }) => {
 
       if (invRes.success && Array.isArray(invRes.data)) {
         setInventory(invRes.data);
-        if (activeUrl) setConnectionMode('google');
-      } else if (activeUrl && !invRes.success) {
-        showError(invRes.error || 'Failed to fetch inventory from Google Sheets');
-      }
-
-      if (purRes.success && Array.isArray(purRes.data)) {
-        setPurchases(purRes.data);
+        if (purRes.success && Array.isArray(purRes.data)) {
+          setPurchases(purRes.data);
+        }
+        setConnectionStatus({
+          state: 'connected',
+          mode: 'google',
+          message: 'Google Sheets + Drive Database Active'
+        });
+      } else {
+        const errMsg = invRes.error || 'Failed to connect to Google Sheets backend.';
+        setConnectionStatus({
+          state: 'failed',
+          mode: 'google',
+          message: 'Google Cloud Connection Failed',
+          error: errMsg
+        });
+        if (invRes.data && Array.isArray(invRes.data)) {
+          setInventory(invRes.data); // load cached data for resilience
+        }
+        if (!isSilent) {
+          showError(errMsg, 'Google Cloud Error');
+        }
       }
     } catch (err) {
-      showError(err.message || 'Error communicating with database.');
+      const errMsg = err.message || 'Error communicating with Google Cloud backend.';
+      setConnectionStatus({
+        state: 'failed',
+        mode: 'google',
+        message: 'Google Cloud Connection Failed',
+        error: errMsg
+      });
+      if (!isSilent) {
+        showError(errMsg, 'Google Cloud Error');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -82,18 +149,58 @@ export const InventoryProvider = ({ children }) => {
   // Save settings when modified
   const updateSettings = useCallback((newSettings) => {
     setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
+      const rawApiUrl = newSettings.apiUrl !== undefined ? newSettings.apiUrl.trim() : (prev.apiUrl || '').trim();
+      const explicitMode = newSettings.storageMode || (rawApiUrl ? 'google' : 'local');
+
+      const updated = {
+        ...prev,
+        ...newSettings,
+        apiUrl: rawApiUrl,
+        storageMode: explicitMode
+      };
+
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
-      if (updated.apiUrl && updated.apiUrl.trim()) {
-        setConnectionMode('google');
+      setStorageMode(explicitMode);
+
+      if (explicitMode === 'local') {
+        setConnectionStatus({
+          state: 'local',
+          mode: 'local',
+          message: 'Local Storage Database Active'
+        });
       } else {
-        setConnectionMode('local');
+        setConnectionStatus({
+          state: 'checking',
+          mode: 'google',
+          message: 'Connecting to Google Cloud...'
+        });
       }
+
       return updated;
     });
+
     setTimeout(() => {
       fetchAllData(false);
     }, 50);
+  }, [fetchAllData]);
+
+  // Explicit helper to switch to local storage mode
+  const switchToLocalStorage = useCallback(() => {
+    updateSettings({
+      apiUrl: '',
+      storageMode: 'local'
+    });
+    showInfo('Switched to Local Storage Database Mode.');
+  }, [updateSettings, showInfo]);
+
+  // Explicit helper to test connection
+  const testConnection = useCallback(async (customUrl = null) => {
+    return await api.testConnection(customUrl);
+  }, []);
+
+  // Explicit helper to retry connection
+  const retryConnection = useCallback(() => {
+    return fetchAllData(false);
   }, [fetchAllData]);
 
   useEffect(() => {
@@ -231,8 +338,9 @@ export const InventoryProvider = ({ children }) => {
     try {
       const result = await api.uploadPhoto(uploadData);
       if (result.success) {
-        await fetchAllData(true);
-        showSuccess('Photo uploaded and stored to Google Drive!', 'Photo Saved');
+        if (uploadData && uploadData.inventory_id && uploadData.inventory_id !== 'UNASSIGNED' && uploadData.inventory_id !== 'new') {
+          await fetchAllData(true);
+        }
         return result;
       }
       showError(result.error || 'Photo upload failed.');
@@ -380,9 +488,14 @@ export const InventoryProvider = ({ children }) => {
         statistics,
         loading,
         refreshing,
-        connectionMode,
+        storageMode,
+        connectionMode: storageMode,
+        connectionStatus,
         settings,
         updateSettings,
+        switchToLocalStorage,
+        testConnection,
+        retryConnection,
         searchQuery,
         setSearchQuery,
         selectedBrand,

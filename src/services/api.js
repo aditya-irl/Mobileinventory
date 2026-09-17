@@ -5,32 +5,63 @@
 
 import { INITIAL_SAMPLE_INVENTORY } from '../data/sampleInventory';
 import { INITIAL_SAMPLE_PURCHASES } from '../data/samplePurchases';
+export const PERMANENT_GOOGLE_APPS_SCRIPT_URL =
+  'https://script.google.com/macros/s/AKfycbztrUEGsk8qduv6s2z6YrJ9myyaeuV_L4OqZlCR5MZzR4e2yZILeuTO_Td0MxEmgHt5/exec';
+export const DEFAULT_GOOGLE_APPS_SCRIPT_URL = PERMANENT_GOOGLE_APPS_SCRIPT_URL;
 
 const LOCAL_STORAGE_KEY = 'phonevault_inventory_db_v1';
 const PURCHASES_STORAGE_KEY = 'phonevault_purchases_db_v1';
 const SETTINGS_KEY = 'phonevault_settings_v1';
 
-// Default Google Apps Script URL if not overridden
-const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxr5SUZ9XsY4UXgOxiC4GDYlkI3ghuvOhYtfxggzITI1udU7gSEhg7rdXcKhkeEo_i2-w/exec';
+/**
+ * Centralized Storage Configuration Reader
+ * Google Apps Script API URL is permanent and locked.
+ */
+export const getStorageConfig = () => {
+  let customStoreName = 'PhoneVault Pro';
+  let customCurrency = '₹';
+  let customDefaultStatus = 'Available';
+  let customLowStock = 3;
+  let explicitMode = 'google';
 
-// Get current API URL (from localStorage override or vite env or fallback default)
-export const getApiUrl = () => {
   try {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
-      if (parsed.apiUrl && parsed.apiUrl.trim()) return parsed.apiUrl.trim();
+      if (parsed.storeName) customStoreName = parsed.storeName;
+      if (parsed.currency) customCurrency = parsed.currency;
+      if (parsed.defaultStatus) customDefaultStatus = parsed.defaultStatus;
+      if (parsed.lowStockThreshold) customLowStock = parsed.lowStockThreshold;
+      if (parsed.storageMode === 'local') {
+        explicitMode = 'local';
+      }
     }
   } catch (e) {
-    // ignore
+    console.error('Error reading storage config from localStorage:', e);
   }
-  return (import.meta.env.VITE_API_URL || DEFAULT_APPS_SCRIPT_URL).trim();
+
+  return {
+    mode: explicitMode,
+    apiUrl: PERMANENT_GOOGLE_APPS_SCRIPT_URL,
+    storeName: customStoreName,
+    currency: customCurrency,
+    defaultStatus: customDefaultStatus,
+    lowStockThreshold: customLowStock
+  };
 };
 
 /**
- * Local Storage Database Helpers (Resilience Cache)
+ * Get current active API URL (Locked to Permanent URL)
  */
-const getLocalInventory = () => {
+export const getApiUrl = () => {
+  const config = getStorageConfig();
+  return config.mode === 'google' ? PERMANENT_GOOGLE_APPS_SCRIPT_URL : '';
+};
+
+/**
+ * Local Storage Database Helpers (Offline cache & Local Mode Database)
+ */
+export const getLocalInventory = () => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) return JSON.parse(data);
@@ -41,11 +72,11 @@ const getLocalInventory = () => {
   return INITIAL_SAMPLE_INVENTORY;
 };
 
-const saveLocalInventory = (items) => {
+export const saveLocalInventory = (items) => {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
 };
 
-const getLocalPurchases = () => {
+export const getLocalPurchases = () => {
   try {
     const data = localStorage.getItem(PURCHASES_STORAGE_KEY);
     if (data) return JSON.parse(data);
@@ -56,7 +87,7 @@ const getLocalPurchases = () => {
   return INITIAL_SAMPLE_PURCHASES;
 };
 
-const saveLocalPurchases = (items) => {
+export const saveLocalPurchases = (items) => {
   localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(items));
 };
 
@@ -69,42 +100,64 @@ export const api = {
    * Calls ?action=testConnection or ?action=list
    */
   testConnection: async (customUrl = null) => {
-    const url = (customUrl || getApiUrl()).trim();
-    if (!url) {
-      return { success: true, mode: 'local', message: 'Running in Local Storage / Demo Mode' };
+    // If explicitly checking an empty URL or in local mode with no customUrl:
+    const activeUrl = customUrl !== null ? customUrl.trim() : getApiUrl().trim();
+
+    if (!activeUrl) {
+      return {
+        success: true,
+        mode: 'local',
+        message: 'Local Storage Database Active'
+      };
+    }
+
+    // Basic URL validation
+    if (!activeUrl.startsWith('http://') && !activeUrl.startsWith('https://')) {
+      return {
+        success: false,
+        mode: 'google',
+        error: 'Invalid URL format. URL must begin with https://'
+      };
     }
 
     try {
-      const sep = url.includes('?') ? '&' : '?';
-      // 1. Try action=testConnection
-      let res = await fetch(`${url}${sep}action=testConnection`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
+      const sep = activeUrl.includes('?') ? '&' : '?';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      let res;
+      try {
+        res = await fetch(`${activeUrl}${sep}action=testConnection`, {
+          method: 'GET',
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
       let data = await res.json();
 
       if (data && data.success) {
         return {
           success: true,
           mode: 'google',
-          message: data.message || 'Google Sheets connection successful',
+          message: data.message || 'Google Sheets + Drive Database Active',
           data
         };
       }
 
-      // 2. If the deployed Apps Script returns "Unknown action" (pending version update), test action=list
+      // 2. If older deployment returns "Unknown action", fallback test with action=list
       if (data && (data.error === 'Unknown action' || !data.success)) {
         try {
-          const fallbackRes = await fetch(`${url}${sep}action=list`, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
+          const fallbackRes = await fetch(`${activeUrl}${sep}action=list`, {
+            method: 'GET'
           });
           const fallbackData = await fallbackRes.json();
           if (fallbackData && fallbackData.success) {
             return {
               success: true,
               mode: 'google',
-              message: 'Google Sheets connection successful',
+              message: 'Google Sheets + Drive Database Active',
               data: fallbackData
             };
           }
@@ -116,13 +169,16 @@ export const api = {
       return {
         success: false,
         mode: 'google',
-        error: data?.error || 'Failed to connect to Google Sheets'
+        error: data?.error || 'Failed to connect to Google Sheets backend.'
       };
     } catch (err) {
+      const isTimeout = err.name === 'AbortError';
       return {
         success: false,
         mode: 'google',
-        error: 'Network connection failed: ' + (err.message || 'Check your internet connection and Apps Script permissions.')
+        error: isTimeout
+          ? 'Connection timed out (30s). Check Apps Script deployment permissions.'
+          : (err.message || 'Network connection failed. Verify Apps Script URL and web app permissions.')
       };
     }
   },
@@ -227,7 +283,7 @@ export const api = {
     } catch (err) {
       console.warn('Google Apps Script getInventory error:', err);
       const cached = getLocalInventory();
-      return { success: true, data: cached, total: cached.length, mode: 'google', cached: true, error: err.message };
+      return { success: false, data: cached, total: cached.length, mode: 'google', cached: true, error: err.message };
     }
   },
 
@@ -258,10 +314,10 @@ export const api = {
   addInventory: async (itemData) => {
     const url = getApiUrl();
 
-    // Clean and normalize photo_urls
+    // Clean and normalize photo_urls, strictly removing any temporary blob: URLs
     let cleanPhotos = [];
     if (itemData.photo_urls && Array.isArray(itemData.photo_urls)) {
-      cleanPhotos = itemData.photo_urls.filter(u => u && typeof u === 'string' && !u.includes('[Ljava.lang.Object'));
+      cleanPhotos = itemData.photo_urls.filter(u => u && typeof u === 'string' && !u.startsWith('blob:') && !u.includes('[Ljava.lang.Object'));
     }
 
     const current = getLocalInventory();
@@ -334,17 +390,14 @@ export const api = {
       });
       const json = await res.json();
       if (json && json.success) {
-        const current = getLocalInventory();
         const createdItem = json.data || { ...newItem, inventory_id: json.inventory_id || newItem.inventory_id };
         saveLocalInventory([createdItem, ...current.filter(i => i.inventory_id !== createdItem.inventory_id)]);
         return json;
       }
-      throw new Error(json?.error || 'Failed to save to Google Sheets');
+      throw new Error(json?.error || 'Failed to save device to Google Sheets');
     } catch (err) {
-      console.warn('Google Apps Script addInventory fallback to local cache:', err);
-      const current = getLocalInventory();
-      saveLocalInventory([newItem, ...current.filter(i => i.inventory_id !== newItem.inventory_id)]);
-      return { success: true, data: newItem, inventory_id: newItem.inventory_id, message: 'Saved to local cache.' };
+      console.error('Google Apps Script addInventory error:', err);
+      throw new Error(err.message || 'Unable to save device to Google Sheets.');
     }
   },
 
@@ -367,9 +420,9 @@ export const api = {
 
     let cleanPhotos = [];
     if (itemData.photo_urls && Array.isArray(itemData.photo_urls)) {
-      cleanPhotos = itemData.photo_urls.filter(u => u && typeof u === 'string' && !u.includes('[Ljava.lang.Object'));
+      cleanPhotos = itemData.photo_urls.filter(u => u && typeof u === 'string' && !u.startsWith('blob:') && !u.includes('[Ljava.lang.Object'));
     } else if (index !== -1 && current[index].photo_urls) {
-      cleanPhotos = (Array.isArray(current[index].photo_urls) ? current[index].photo_urls : [current[index].photo_urls]).filter(u => u && typeof u === 'string' && !u.includes('[Ljava.lang.Object'));
+      cleanPhotos = (Array.isArray(current[index].photo_urls) ? current[index].photo_urls : [current[index].photo_urls]).filter(u => u && typeof u === 'string' && !u.startsWith('blob:') && !u.includes('[Ljava.lang.Object'));
     }
 
     const updatedItem = {
@@ -383,15 +436,13 @@ export const api = {
       updated_at: new Date().toISOString()
     };
 
-    // Save to local cache immediately
-    if (index !== -1) {
-      current[index] = updatedItem;
-      saveLocalInventory(current);
-    } else {
-      saveLocalInventory([updatedItem, ...current]);
-    }
-
     if (!url) {
+      if (index !== -1) {
+        current[index] = updatedItem;
+        saveLocalInventory(current);
+      } else {
+        saveLocalInventory([updatedItem, ...current]);
+      }
       return { success: true, data: updatedItem, message: `Device ${itemData.inventory_id} updated.` };
     }
 
@@ -419,17 +470,18 @@ export const api = {
       });
       const json = await res.json();
       if (json && json.success) {
+        if (index !== -1) {
+          current[index] = updatedItem;
+          saveLocalInventory(current);
+        } else {
+          saveLocalInventory([updatedItem, ...current]);
+        }
         return json;
       }
-      return { success: true, data: updatedItem, message: json?.message || 'Device updated.' };
+      throw new Error(json?.error || `Failed to update device ${itemData.inventory_id} in Google Sheets`);
     } catch (err) {
-      console.warn('Google Apps Script update error, preserved in local cache:', err);
-      return {
-        success: true,
-        data: updatedItem,
-        mode: 'google_cached',
-        message: `Device ${itemData.inventory_id} updated.`
-      };
+      console.error('Google Apps Script update error:', err);
+      throw new Error(err.message || 'Unable to update device in Google Sheets.');
     }
   },
 
@@ -498,12 +550,12 @@ export const api = {
    * Upload Photo to Google Drive and update inventory row
    * Sends POST action=uploadPhoto
    */
-  uploadPhoto: async ({ inventory_id, file, base64_data, file_name, mime_type }) => {
+  uploadPhoto: async (params = {}) => {
     const url = getApiUrl();
-
-    // Clean / determine base64
-    let cleanBase64 = base64_data || '';
-    let detectedMime = mime_type || 'image/jpeg';
+    const inventory_id = params.inventory_id || params.inventoryId || 'UNASSIGNED';
+    let cleanBase64 = params.base64_data || params.base64 || params.image_base64 || (typeof params.file === 'string' ? params.file : '') || '';
+    let detectedMime = params.mime_type || params.mimeType || 'image/jpeg';
+    const fileName = params.file_name || params.fileName || (inventory_id !== 'UNASSIGNED' ? `${inventory_id}_photo_${Date.now()}.jpg` : `photo_${Date.now()}.jpg`);
 
     if (cleanBase64.startsWith('data:')) {
       const parts = cleanBase64.split(',');
@@ -512,32 +564,41 @@ export const api = {
       cleanBase64 = parts[1] || '';
     }
 
+    console.log('[Photo Upload] File selected:', fileName);
+    console.log('[Photo Upload] File size/type:', detectedMime, `(~${Math.round(cleanBase64.length * 0.75 / 1024)} KB)`);
+
     // Client-side validation
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (detectedMime && !allowedTypes.includes(detectedMime.toLowerCase())) {
-      throw new Error(`Unsupported image format (${detectedMime}). Only JPG, PNG, and WebP are supported.`);
+      const err = new Error(`Unsupported image format (${detectedMime}). Only JPG, PNG, and WebP are supported.`);
+      console.error('[Photo Upload] Upload failed:', err.message);
+      throw err;
     }
 
     if (!cleanBase64) {
-      throw new Error('Please select an image.');
+      const err = new Error('Please select an image. No image data was provided.');
+      console.error('[Photo Upload] Upload failed:', err.message);
+      throw err;
     }
 
     if (cleanBase64.length > 14000000) {
-      throw new Error('Image size is too large. Maximum allowed size is 10 MB.');
+      const err = new Error('Image size is too large. Maximum allowed size is 10 MB.');
+      console.error('[Photo Upload] Upload failed:', err.message);
+      throw err;
     }
 
     const payload = {
       action: 'uploadPhoto',
       data: {
-        inventory_id: inventory_id || 'UNASSIGNED',
+        inventory_id: inventory_id,
         base64_data: cleanBase64,
         mime_type: detectedMime,
-        file_name: file_name || (inventory_id ? `${inventory_id}_photo_${Date.now()}.jpg` : `photo_${Date.now()}.jpg`)
+        file_name: fileName
       }
     };
 
     if (!url) {
-      // Local mode fallback simulation
+      // Local mode fallback
       const dataUrl = `data:${detectedMime};base64,${cleanBase64}`;
       if (inventory_id && inventory_id !== 'UNASSIGNED') {
         const current = getLocalInventory();
@@ -549,14 +610,18 @@ export const api = {
           saveLocalInventory(current);
         }
       }
+      console.log('[Photo Upload] Local Mode - Image cached locally as Data URL.');
       return {
         success: true,
         message: 'Photo saved locally.',
         file_url: dataUrl,
+        url: dataUrl,
+        thumbnail_url: dataUrl,
         file_id: 'local_' + Date.now()
       };
     }
 
+    console.log('[Photo Upload] Sending to Google Apps Script...');
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -569,18 +634,37 @@ export const api = {
         json = JSON.parse(text);
       } catch (parseErr) {
         if (text.includes('drive.google.com') || text.includes('Unable to open the file') || text.includes('<!DOCTYPE') || text.includes('Google Drive')) {
-          throw new Error('Google Apps Script requires Drive permission approval or a new version deployment. In script.google.com: select authorizeAndSetupDrive, click Run, and deploy as a New Version.');
+          throw new Error('Google Apps Script requires Drive permission approval. In script.google.com: select authorizeAndSetupDrive, click Run, and deploy as a New Version.');
         }
-        throw new Error('Invalid response from Google Apps Script Web App: ' + text.substring(0, 100));
+        throw new Error('Invalid response from Google Apps Script Web App: ' + text.substring(0, 120));
       }
 
+      console.log('[Photo Upload] Upload response:', json);
+
       if (!json || !json.success) {
-        throw new Error(json?.error || 'Photo upload failed.');
+        throw new Error(json?.error || 'Photo upload failed on Google backend.');
       }
-      return json;
+
+      const driveUrl = json.thumbnail_url || json.file_url || json.url;
+      console.log('[Photo Upload] Google Drive URL:', driveUrl);
+
+      return {
+        ...json,
+        file_url: json.file_url || json.url,
+        url: json.url || json.file_url,
+        thumbnail_url: json.thumbnail_url || json.file_url
+      };
     } catch (err) {
-      throw new Error(err.message || 'Photo upload failed. Check connection.');
+      console.error('[Photo Upload] Upload failed:', err.message);
+      throw new Error(err.message || 'Photo upload failed. Check Google Cloud connection.');
     }
+  },
+
+  /**
+   * Upload Image Alias
+   */
+  uploadImage: async (params) => {
+    return api.uploadPhoto(params);
   },
 
   /**

@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { useToast } from '../context/ToastContext';
 import { validateInventoryForm } from '../utils/validators';
-import { compressMultipleImages } from '../services/imageCompression';
+import { compressImage, compressMultipleImages, validateImageFile } from '../services/imageCompression';
 import { BarcodeScannerModal } from '../components/inventory/BarcodeScannerModal';
-import { formatCurrency, calculateProfitMargin } from '../utils/formatters';
+import { formatCurrency, calculateProfitMargin, getSafeImageUrl } from '../utils/formatters';
 import {
   BRAND_PRESETS,
   STORAGE_PRESETS,
@@ -21,14 +21,17 @@ import {
   Upload,
   X,
   CheckCircle,
+  CheckCircle2,
   PlusCircle,
   Sparkles,
+  RotateCw,
+  AlertCircle,
   Info
 } from 'lucide-react';
 
 export const AddInventory = ({ setCurrentTab }) => {
-  const { inventory, addInventoryItem, settings } = useInventory();
-  const { showError, showWarning } = useToast();
+  const { inventory, addInventoryItem, uploadDevicePhoto, storageMode, settings } = useInventory();
+  const { showError, showWarning, showSuccess } = useToast();
 
   const [formData, setFormData] = useState({
     brand: 'Apple',
@@ -49,12 +52,11 @@ export const AddInventory = ({ setCurrentTab }) => {
     status: 'Available',
     accessories: 'Box, Original Cable, Adapter',
     warranty: '1 Year Store Warranty',
-    notes: '',
-    photo_urls: []
+    notes: ''
   });
 
   const [errors, setErrors] = useState({});
-  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [photoItems, setPhotoItems] = useState([]); // [{ id, previewUrl, base64, mimeType, fileName, status: 'uploading' | 'uploaded' | 'error', driveUrl, error }]
   const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [scannerTargetField, setScannerTargetField] = useState(null); // 'imei_1' | 'imei_2' | 'serial_number'
@@ -66,42 +68,149 @@ export const AddInventory = ({ setCurrentTab }) => {
     }
   };
 
+  // Upload single photo helper
+  const processAndUploadPhoto = async (file) => {
+    const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const previewUrl = URL.createObjectURL(file);
+
+    // Initial placeholder item
+    const newItem = {
+      id: photoId,
+      previewUrl,
+      fileName: file.name,
+      status: 'uploading',
+      driveUrl: null,
+      error: null,
+      base64: '',
+      mimeType: file.type || 'image/jpeg'
+    };
+
+    setPhotoItems(prev => [...prev, newItem]);
+
+    try {
+      const compressed = await compressImage(file, 1200, 1200, 0.8);
+      newItem.base64 = compressed.base64;
+      newItem.mimeType = compressed.mimeType;
+      newItem.fileName = compressed.name;
+
+      if (storageMode === 'google') {
+        const uploadRes = await uploadDevicePhoto({
+          inventory_id: 'UNASSIGNED',
+          base64_data: compressed.base64,
+          mime_type: compressed.mimeType,
+          file_name: compressed.name
+        });
+
+        if (uploadRes && uploadRes.success && (uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url)) {
+          const driveUrl = uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url;
+          setPhotoItems(prev => prev.map(p => p.id === photoId ? {
+            ...p,
+            status: 'uploaded',
+            driveUrl: driveUrl,
+            error: null
+          } : p));
+          showSuccess(`Photo "${file.name}" uploaded to Google Drive!`, 'Photo Uploaded');
+        } else {
+          throw new Error(uploadRes?.error || 'Google Drive upload failed');
+        }
+      } else {
+        // Local storage mode
+        setPhotoItems(prev => prev.map(p => p.id === photoId ? {
+          ...p,
+          status: 'uploaded',
+          driveUrl: compressed.dataUrl,
+          error: null
+        } : p));
+      }
+    } catch (err) {
+      console.error('[Photo Upload] Error processing upload:', err);
+      setPhotoItems(prev => prev.map(p => p.id === photoId ? {
+        ...p,
+        status: 'error',
+        error: err.message || 'Upload failed'
+      } : p));
+      showError(`Failed to upload "${file.name}": ${err.message}`, 'Upload Error');
+    }
+  };
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
     setCompressing(true);
-    try {
-      const { results, errors: compErrors } = await compressMultipleImages(files);
-
-      if (compErrors && compErrors.length > 0) {
-        showWarning(compErrors.join(' | '), 'Image Notice');
-      }
-
-      if (results && results.length > 0) {
-        const newUrls = results.map(c => c.dataUrl);
-        const updated = [...photoPreviews, ...newUrls];
-        setPhotoPreviews(updated);
-        setFormData(prev => ({ ...prev, photo_urls: updated }));
-      }
-    } catch (err) {
-      console.error('Failed to compress images', err);
-      showError(err.message || 'Failed to process images.', 'Image Error');
-    } finally {
-      setCompressing(false);
-      // Reset input value to allow re-uploading the same file if needed
-      e.target.value = '';
+    for (const file of files) {
+      await processAndUploadPhoto(file);
     }
+    setCompressing(false);
+    e.target.value = '';
   };
 
-  const removePhoto = (index) => {
-    const updated = photoPreviews.filter((_, i) => i !== index);
-    setPhotoPreviews(updated);
-    setFormData(prev => ({ ...prev, photo_urls: updated }));
+  const removePhoto = (id) => {
+    setPhotoItems(prev => {
+      const target = prev.find(p => p.id === id);
+      if (target && target.previewUrl && target.previewUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(target.previewUrl); } catch (e) {}
+      }
+      return prev.filter(p => p.id !== id);
+    });
+  };
+
+  const retryUploadPhoto = async (photoItem) => {
+    if (!photoItem.base64 && photoItem.file) {
+      await processAndUploadPhoto(photoItem.file);
+      return;
+    }
+
+    setPhotoItems(prev => prev.map(p => p.id === photoItem.id ? { ...p, status: 'uploading', error: null } : p));
+
+    try {
+      if (storageMode === 'google') {
+        const uploadRes = await uploadDevicePhoto({
+          inventory_id: 'UNASSIGNED',
+          base64_data: photoItem.base64,
+          mime_type: photoItem.mimeType,
+          file_name: photoItem.fileName
+        });
+
+        if (uploadRes && uploadRes.success && (uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url)) {
+          const driveUrl = uploadRes.thumbnail_url || uploadRes.file_url || uploadRes.url;
+          setPhotoItems(prev => prev.map(p => p.id === photoItem.id ? {
+            ...p,
+            status: 'uploaded',
+            driveUrl: driveUrl,
+            error: null
+          } : p));
+          showSuccess(`Photo uploaded to Google Drive!`, 'Photo Uploaded');
+        } else {
+          throw new Error(uploadRes?.error || 'Google Drive upload failed');
+        }
+      }
+    } catch (err) {
+      setPhotoItems(prev => prev.map(p => p.id === photoItem.id ? {
+        ...p,
+        status: 'error',
+        error: err.message
+      } : p));
+      showError(`Retry failed: ${err.message}`, 'Upload Failed');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check if any photo is still uploading
+    const stillUploading = photoItems.some(p => p.status === 'uploading');
+    if (stillUploading) {
+      showWarning('Please wait for photos to finish uploading to Google Drive.', 'Upload in Progress');
+      return;
+    }
+
+    // Check if any photo failed
+    const failedPhotos = photoItems.filter(p => p.status === 'error');
+    if (failedPhotos.length > 0) {
+      showWarning('Some photos failed to upload to Google Drive. Please retry or remove them before saving.', 'Failed Photos');
+      return;
+    }
 
     const validation = validateInventoryForm(formData, inventory);
     if (!validation.isValid) {
@@ -109,11 +218,28 @@ export const AddInventory = ({ setCurrentTab }) => {
       return;
     }
 
+    // Collect ONLY permanent URLs (never blob: URLs!)
+    const finalPhotoUrls = photoItems
+      .filter(p => p.status === 'uploaded' && p.driveUrl && !p.driveUrl.startsWith('blob:'))
+      .map(p => p.driveUrl);
+
+    const submissionPayload = {
+      ...formData,
+      photo_urls: finalPhotoUrls
+    };
+
     setSubmitting(true);
-    const result = await addInventoryItem(formData);
+    const result = await addInventoryItem(submissionPayload);
     setSubmitting(false);
 
     if (result.success) {
+      // Clean up object URLs
+      photoItems.forEach(p => {
+        if (p.previewUrl && p.previewUrl.startsWith('blob:')) {
+          try { URL.revokeObjectURL(p.previewUrl); } catch (e) {}
+        }
+      });
+
       // Reset form
       setFormData({
         brand: 'Apple',
@@ -134,10 +260,9 @@ export const AddInventory = ({ setCurrentTab }) => {
         status: 'Available',
         accessories: '',
         warranty: '1 Year Store Warranty',
-        notes: '',
-        photo_urls: []
+        notes: ''
       });
-      setPhotoPreviews([]);
+      setPhotoItems([]);
       setErrors({});
       setCurrentTab('inventory');
     }
@@ -522,68 +647,180 @@ export const AddInventory = ({ setCurrentTab }) => {
 
           {/* Section 5: Photos & Notes */}
           <div className="card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Upload size={18} color="var(--primary-600)" />
-              Product Photos & Drive Storage
+              Product Photos & Google Drive Storage
             </h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              {storageMode === 'google'
+                ? 'Photos are automatically compressed and uploaded directly to Google Drive storage.'
+                : 'Running in Local Storage Mode. Photos will be saved locally.'}
+            </p>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-              {photoPreviews.map((url, idx) => (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+              {photoItems.map((item) => (
                 <div
-                  key={idx}
+                  key={item.id}
                   style={{
-                    width: '88px',
-                    height: '88px',
+                    width: '104px',
+                    height: '104px',
                     borderRadius: 'var(--radius-md)',
                     overflow: 'hidden',
                     position: 'relative',
-                    border: '1px solid var(--border-subtle)'
+                    border: `1px solid ${
+                      item.status === 'error'
+                        ? 'var(--status-danger-border)'
+                        : item.status === 'uploaded'
+                        ? 'var(--status-available-border)'
+                        : 'var(--border-subtle)'
+                    }`,
+                    backgroundColor: 'var(--bg-subtle)'
                   }}
                 >
-                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img
+                    src={item.previewUrl || item.driveUrl}
+                    alt={item.fileName || 'Product Photo'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+
+                  {/* Uploading Overlay */}
+                  {item.status === 'uploading' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        color: '#fff',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        padding: '4px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <RotateCw size={18} className="animate-spin" color="#38bdf8" />
+                      <span>Uploading to Drive...</span>
+                    </div>
+                  )}
+
+                  {/* Success Badge */}
+                  {item.status === 'uploaded' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '4px',
+                        left: '4px',
+                        right: '4px',
+                        backgroundColor: 'rgba(16, 185, 129, 0.9)',
+                        color: '#fff',
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        padding: '2px 4px',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px'
+                      }}
+                      title="Stored in Google Drive"
+                    >
+                      <CheckCircle2 size={10} />
+                      <span>{storageMode === 'google' ? 'Google Drive' : 'Saved'}</span>
+                    </div>
+                  )}
+
+                  {/* Error Overlay */}
+                  {item.status === 'error' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        color: '#fff',
+                        fontSize: '0.65rem',
+                        padding: '6px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <AlertCircle size={16} />
+                      <span style={{ lineHeight: 1.1 }}>Upload Failed</span>
+                      <button
+                        type="button"
+                        onClick={() => retryUploadPhoto(item)}
+                        style={{
+                          marginTop: '2px',
+                          padding: '2px 6px',
+                          borderRadius: 'var(--radius-sm)',
+                          backgroundColor: '#fff',
+                          color: '#ef4444',
+                          border: 'none',
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Remove Button */}
                   <button
                     type="button"
-                    onClick={() => removePhoto(idx)}
+                    onClick={() => removePhoto(item.id)}
+                    title="Remove Photo"
                     style={{
                       position: 'absolute',
                       top: '4px',
                       right: '4px',
-                      background: 'rgba(239, 68, 68, 0.9)',
+                      background: 'rgba(0, 0, 0, 0.65)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '50%',
-                      width: '22px',
-                      height: '22px',
+                      width: '20px',
+                      height: '20px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      zIndex: 10
                     }}
                   >
-                    <X size={13} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
 
+              {/* Add Photo Button */}
               <label
                 style={{
-                  width: '88px',
-                  height: '88px',
+                  width: '104px',
+                  height: '104px',
                   borderRadius: 'var(--radius-md)',
                   border: '2px dashed var(--border-strong)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
+                  cursor: compressing || submitting ? 'not-allowed' : 'pointer',
                   color: 'var(--text-muted)',
                   gap: '4px',
                   fontSize: '0.75rem',
-                  backgroundColor: 'var(--bg-subtle)'
+                  backgroundColor: 'var(--bg-subtle)',
+                  transition: 'all var(--transition-fast)'
                 }}
               >
-                <Upload size={20} />
-                <span>{compressing ? 'Processing...' : 'Upload'}</span>
+                {compressing ? <RotateCw size={20} className="animate-spin" /> : <Upload size={20} />}
+                <span>{compressing ? 'Processing...' : '+ Add Photo'}</span>
                 <input
                   type="file"
                   multiple
