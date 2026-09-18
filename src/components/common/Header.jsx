@@ -141,21 +141,23 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
 
   return (
     <header
-      className="card-glass"
       style={{
-        minHeight: 'var(--header-height-mobile)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '8px 12px',
-        paddingTop: 'calc(8px + var(--safe-top))',
-        paddingLeft: 'max(12px, var(--safe-left))',
-        paddingRight: 'max(12px, var(--safe-right))',
+        paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
+        paddingBottom: '8px',
+        paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
+        backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
-        gap: '8px'
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+        gap: '8px',
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
       {/* Mobile Menu & Branding (Visible on Mobile) */}

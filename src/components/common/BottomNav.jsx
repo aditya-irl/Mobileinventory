@@ -22,13 +22,14 @@ export const BottomNav = ({ currentTab, setCurrentTab }) => {
 
   return (
     <nav
-      className="card-glass hide-desktop"
+      className="hide-desktop"
       style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
         height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
+        backgroundColor: 'var(--bg-surface)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
@@ -37,6 +38,7 @@ export const BottomNav = ({ currentTab, setCurrentTab }) => {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
+        boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
         userSelect: 'none'
       }}
     >

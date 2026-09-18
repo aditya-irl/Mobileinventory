@@ -487,7 +487,7 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 767px) {
   .page-wrapper {
-    padding: 12px 12px;
+    padding: 16px 14px;
   }
 
   /* Prevent iOS Auto-Zoom on Input Focus & Ensure 44px Touch Targets */
@@ -508,7 +508,7 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 360px) {
   .page-wrapper {
-    padding: 10px 8px;
+    padding: 12px 10px;
   }
 
   .grid-stats {
