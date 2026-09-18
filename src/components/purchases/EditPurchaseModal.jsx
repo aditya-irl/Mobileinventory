@@ -167,8 +167,23 @@ export const EditPurchaseModal = ({ purchase, isOpen, onClose, onUpdated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.seller_name || !formData.brand || !formData.model) {
-      showError('Seller name, device brand, and model are required.');
+    if (!formData.seller_name || !String(formData.seller_name).trim()) {
+      showError('Please enter seller full legal name.');
+      return;
+    }
+
+    if (!formData.seller_phone || !String(formData.seller_phone).trim()) {
+      showError('Please enter seller contact mobile number.');
+      return;
+    }
+
+    if (!formData.brand || !String(formData.brand).trim() || !formData.model || !String(formData.model).trim()) {
+      showError('Brand and Model are required.');
+      return;
+    }
+
+    if (formData.purchase_price === undefined || formData.purchase_price === '' || Number(formData.purchase_price) <= 0) {
+      showError('Please enter a valid purchase price.');
       return;
     }
 
@@ -188,7 +203,7 @@ export const EditPurchaseModal = ({ purchase, isOpen, onClose, onUpdated }) => {
 
       const result = await updatePurchaseTransaction(updatedPayload);
       if (result && result.success) {
-        showSuccess(`Purchase record ${purchase.purchase_id} updated successfully.`, 'Updated');
+        showSuccess(`Buyback record ${purchase.purchase_id} updated successfully.`, 'Updated');
         if (onUpdated) {
           onUpdated(result.data || updatedPayload);
         }
@@ -711,7 +726,7 @@ export const EditPurchaseModal = ({ purchase, isOpen, onClose, onUpdated }) => {
                 disabled={saving || uploadingDocs || uploadingDevices}
               >
                 <Save size={16} />
-                {saving ? 'Updating Buyback...' : 'Save Buyback Changes'}
+                {saving ? 'Updating...' : 'Update Buyback'}
               </button>
             </div>
           </form>
