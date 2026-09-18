@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { formatCurrency, formatDate, getSafeImageUrl } from '../../utils/formatters';
 import { printBuybackReceipt } from '../../services/exportService';
+import { extractPurchaseDocumentPhotos, extractPurchaseDevicePhotos } from '../../utils/buybackPhotos';
+import { PhotoViewerModal } from '../common/PhotoViewerModal';
 import {
   X,
   Printer,
@@ -14,19 +16,39 @@ import {
   DollarSign,
   Calendar,
   Archive,
+  Edit3,
   Image as ImageIcon
 } from 'lucide-react';
 
-export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) => {
-  const { settings } = useInventory();
+export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onEdit }) => {
+  const { inventory, settings } = useInventory();
+  
+  const [viewerState, setViewerState] = useState({
+    isOpen: false,
+    photos: [],
+    initialIndex: 0,
+    category: 'Document Photo'
+  });
 
   if (!isOpen || !purchase) return null;
+
+  const documentPhotos = extractPurchaseDocumentPhotos(purchase);
+  const devicePhotos = extractPurchaseDevicePhotos(purchase, inventory);
+
+  const openViewer = (photos, index, category) => {
+    setViewerState({
+      isOpen: true,
+      photos,
+      initialIndex: index,
+      category
+    });
+  };
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-content"
-        style={{ maxWidth: '720px' }}
+        style={{ maxWidth: '780px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -53,6 +75,20 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) =
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onEdit && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  onClose();
+                  onEdit(purchase);
+                }}
+                title="Edit Buyback and Photos"
+                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <Edit3 size={14} />
+                <span>Edit</span>
+              </button>
+            )}
             <button
               className="btn btn-secondary btn-icon"
               onClick={() => printBuybackReceipt(purchase, settings.storeName, settings.currency)}
@@ -79,7 +115,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) =
               Seller Verification Record (Sensitive KYC)
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Seller Full Name</div>
                 <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '2px' }}>{purchase.seller_name}</div>
@@ -108,39 +144,141 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) =
                 <div style={{ fontSize: '0.875rem', marginTop: '2px', color: 'var(--text-secondary)' }}>{purchase.seller_address || 'Not Provided'}</div>
               </div>
             </div>
+          </div>
 
-            {/* KYC Documents Showcase */}
-            {(purchase.seller_photo_url || purchase.document_photo_url) && (
-              <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                {purchase.seller_photo_url && (
-                  <div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>Seller Face Photo</div>
-                    <div style={{ width: '120px', height: '120px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                      <img
-                        src={getSafeImageUrl(purchase.seller_photo_url)}
-                        alt="Seller Face"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {purchase.document_photo_url && (
-                  <div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>ID Document Copy</div>
-                    <div style={{ width: '120px', height: '120px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                      <img
-                        src={getSafeImageUrl(purchase.document_photo_url)}
-                        alt="ID Document"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
-                    </div>
-                  </div>
-                )}
+          {/* SEPARATED PHOTO CATEGORIES VIEW (Document Photos vs Device Photos) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '16px' }}>
+            
+            {/* 1. DOCUMENT PHOTOS */}
+            <div
+              className="card"
+              style={{
+                padding: '16px',
+                backgroundColor: 'rgba(5, 150, 105, 0.03)',
+                border: '1.5px solid rgba(5, 150, 105, 0.22)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={16} color="#059669" />
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#059669' }}>
+                    Document Photos ({documentPhotos.length})
+                  </span>
+                </div>
               </div>
-            )}
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Aadhaar, PAN, ID proof, address proof, purchase documents, etc.
+              </p>
+
+              {documentPhotos.length === 0 ? (
+                <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  No document photos attached
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {documentPhotos.map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => openViewer(documentPhotos, idx, 'Document Photo')}
+                      style={{
+                        width: '84px',
+                        height: '84px',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'var(--bg-subtle)',
+                        position: 'relative',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.04)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                      title={`Click to view full size (${idx + 1}/${documentPhotos.length})`}
+                    >
+                      <img
+                        src={getSafeImageUrl(url)}
+                        alt={`Document photo ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2. DEVICE PHOTOS */}
+            <div
+              className="card"
+              style={{
+                padding: '16px',
+                backgroundColor: 'rgba(99, 102, 241, 0.03)',
+                border: '1.5px solid rgba(99, 102, 241, 0.22)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Smartphone size={16} color="var(--primary-600)" />
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary-600)' }}>
+                    Device Photos ({devicePhotos.length})
+                  </span>
+                </div>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                Front, back, sides, display, condition, IMEI label, accessories, etc.
+              </p>
+
+              {devicePhotos.length === 0 ? (
+                <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  No device photos attached
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {devicePhotos.map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => openViewer(devicePhotos, idx, 'Device Photo')}
+                      style={{
+                        width: '84px',
+                        height: '84px',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'var(--bg-subtle)',
+                        position: 'relative',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.04)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                      title={`Click to view full size (${idx + 1}/${devicePhotos.length})`}
+                    >
+                      <img
+                        src={getSafeImageUrl(url)}
+                        alt={`Device photo ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&auto=format&fit=crop&q=80'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Purchased Device Information */}
@@ -150,7 +288,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) =
               Device Hardware Telemetry
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Brand & Model</div>
                 <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{purchase.brand} {purchase.model}</div>
@@ -234,11 +372,33 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive }) =
             </button>
           ) : <div />}
 
-          <button className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {onEdit && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  onClose();
+                  onEdit(purchase);
+                }}
+              >
+                <Edit3 size={14} /> Edit Buyback
+              </button>
+            )}
+            <button className="btn btn-secondary" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Full-size Photo Lightbox Viewer */}
+      <PhotoViewerModal
+        isOpen={viewerState.isOpen}
+        photos={viewerState.photos}
+        initialIndex={viewerState.initialIndex}
+        category={viewerState.category}
+        onClose={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

@@ -159,8 +159,8 @@ export const SoldItems = () => {
           justifyContent: 'space-between'
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1 }}>
-          <div style={{ position: 'relative', width: '240px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: '1 1 280px', width: '100%' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 0 }}>
             <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -168,13 +168,13 @@ export const SoldItems = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="input"
-              style={{ paddingLeft: '32px', height: '36px', fontSize: '0.8125rem' }}
+              style={{ paddingLeft: '32px', height: '38px', fontSize: '0.8125rem', width: '100%' }}
             />
           </div>
 
           <select
             className="select"
-            style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+            style={{ width: 'auto', flex: '1 1 120px', padding: '6px 12px', height: '38px', fontSize: '0.8125rem' }}
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
           >
@@ -186,7 +186,7 @@ export const SoldItems = () => {
           <input
             type="month"
             className="input"
-            style={{ width: 'auto', padding: '6px 10px', fontSize: '0.8125rem' }}
+            style={{ width: 'auto', flex: '1 1 120px', padding: '6px 10px', height: '38px', fontSize: '0.8125rem' }}
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
             title="Filter by Sale Month"
@@ -200,7 +200,7 @@ export const SoldItems = () => {
                 setSelectedBrand('All');
                 setDateFilter('');
               }}
-              style={{ color: '#ef4444' }}
+              style={{ color: '#ef4444', height: '38px' }}
             >
               Reset
             </button>
@@ -208,7 +208,7 @@ export const SoldItems = () => {
         </div>
       </div>
 
-      {/* Sold Items Table */}
+      {/* Sold Items Table & Mobile Cards */}
       {filteredSold.length === 0 ? (
         <EmptyState
           title="No sold devices found"
@@ -220,93 +220,188 @@ export const SoldItems = () => {
           icon={ShoppingBag}
         />
       ) : (
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Device</th>
-                <th>Buyer / Customer</th>
-                <th>Purchase Cost</th>
-                <th>Selling Price</th>
-                <th>Realized Profit</th>
-                <th>Sale Date</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSold.map((item) => {
-                const profit = (Number(item.selling_price) || 0) - (Number(item.purchase_price) || 0);
-                const margin = calculateProfitMargin(item.purchase_price, item.selling_price);
+        <>
+          {/* Desktop Table */}
+          <div className="table-container hide-mobile">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Device</th>
+                  <th>Buyer / Customer</th>
+                  <th>Purchase Cost</th>
+                  <th>Selling Price</th>
+                  <th>Realized Profit</th>
+                  <th>Sale Date</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSold.map((item) => {
+                  const profit = (Number(item.selling_price) || 0) - (Number(item.purchase_price) || 0);
+                  const margin = calculateProfitMargin(item.purchase_price, item.selling_price);
 
-                return (
-                  <tr
-                    key={item.inventory_id}
-                    onClick={() => setSelectedDevice(item)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-600)' }}>
-                      {item.inventory_id}
-                    </td>
+                  return (
+                    <tr
+                      key={item.inventory_id}
+                      onClick={() => setSelectedDevice(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-600)' }}>
+                        {item.inventory_id}
+                      </td>
 
-                    <td>
-                      <div style={{ fontWeight: 700 }}>
+                      <td>
+                        <div style={{ fontWeight: 700 }}>
+                          {item.brand} {item.model}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {item.storage || '—'} • {item.color || ''}
+                        </div>
+                      </td>
+
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                          <User size={13} color="var(--text-muted)" />
+                          <span>{item.customer || 'Direct Customer'}</span>
+                        </div>
+                      </td>
+
+                      <td style={{ fontWeight: 500 }}>
+                        {formatCurrency(item.purchase_price, settings.currency)}
+                      </td>
+
+                      <td style={{ fontWeight: 700, color: 'var(--primary-600)' }}>
+                        {formatCurrency(item.selling_price, settings.currency)}
+                      </td>
+
+                      <td>
+                        <div style={{ fontWeight: 800, color: '#10b981' }}>
+                          +{formatCurrency(profit, settings.currency)}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                          +{margin}% margin
+                        </div>
+                      </td>
+
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Calendar size={13} />
+                          <span>{formatDate(item.selling_date || item.updated_at)}</span>
+                        </div>
+                      </td>
+
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="btn btn-subtle btn-icon btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDevice(item);
+                          }}
+                          title="View Sale Record"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div
+            className="hide-desktop"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              gap: '12px'
+            }}
+          >
+            {filteredSold.map((item) => {
+              const profit = (Number(item.selling_price) || 0) - (Number(item.purchase_price) || 0);
+              const margin = calculateProfitMargin(item.purchase_price, item.selling_price);
+
+              return (
+                <div
+                  key={item.inventory_id}
+                  className="card animate-fade-in"
+                  onClick={() => setSelectedDevice(item)}
+                  style={{
+                    padding: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                         {item.brand} {item.model}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {item.storage || '—'} • {item.color || ''}
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        ID: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.inventory_id}</span>
+                        {item.storage ? ` • ${item.storage}` : ''}
                       </div>
-                    </td>
+                    </div>
 
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                        <User size={13} color="var(--text-muted)" />
-                        <span>{item.customer || 'Direct Customer'}</span>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-600)' }}>
+                        {formatCurrency(item.selling_price, settings.currency)}
                       </div>
-                    </td>
-
-                    <td style={{ fontWeight: 500 }}>
-                      {formatCurrency(item.purchase_price, settings.currency)}
-                    </td>
-
-                    <td style={{ fontWeight: 700, color: 'var(--primary-600)' }}>
-                      {formatCurrency(item.selling_price, settings.currency)}
-                    </td>
-
-                    <td>
-                      <div style={{ fontWeight: 800, color: '#10b981' }}>
-                        +{formatCurrency(profit, settings.currency)}
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>
+                        +{formatCurrency(profit, settings.currency)} ({margin}%)
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
-                        +{margin}% margin
-                      </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <Calendar size={13} />
-                        <span>{formatDate(item.selling_date || item.updated_at)}</span>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      backgroundColor: 'var(--bg-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.78rem'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>Buyer</div>
+                      <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.customer || 'Direct Customer'}
                       </div>
-                    </td>
+                    </div>
 
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="btn btn-subtle btn-icon btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDevice(item);
-                        }}
-                        title="View Sale Record"
-                      >
-                        <Eye size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sale Date</div>
+                      <div style={{ fontWeight: 600 }}>{formatDate(item.selling_date || item.updated_at)}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Cost: {formatCurrency(item.purchase_price, settings.currency)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDevice(item);
+                      }}
+                      style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px' }}
+                    >
+                      <Eye size={13} /> View Sale Details
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Device Details Modal */}

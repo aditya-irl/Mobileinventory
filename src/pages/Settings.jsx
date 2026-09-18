@@ -3,15 +3,18 @@ import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { PERMANENT_GOOGLE_APPS_SCRIPT_URL, DEFAULT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
+import { ChangePinModal } from '../components/settings/ChangePinModal';
 
 import {
   Settings as SettingsIcon,
   Database,
   Cloud,
   Lock,
+  LogOut,
   Store,
   DollarSign,
   Shield,
+  ShieldCheck,
   Download,
   Upload,
   RefreshCw,
@@ -22,7 +25,8 @@ import {
   ExternalLink,
   HelpCircle,
   Copy,
-  Check
+  Check,
+  KeyRound
 } from 'lucide-react';
 
 export const Settings = () => {
@@ -37,7 +41,7 @@ export const Settings = () => {
     inventory,
     resetToSampleData
   } = useInventory();
-  const { isPinRequired, setIsPinRequired, updatePin } = useAuth();
+  const { currentUser, logout, authEmail } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
 
   const [apiUrl] = useState(PERMANENT_GOOGLE_APPS_SCRIPT_URL);
@@ -47,10 +51,7 @@ export const Settings = () => {
 
   const [testingConnection, setTestingConnection] = useState(false);
   const [localTestResult, setLocalTestResult] = useState(null);
-
-  const [oldPin, setOldPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
 
   // Copy API URL to clipboard
   const handleCopyUrl = async () => {
@@ -114,24 +115,6 @@ export const Settings = () => {
     });
 
     showSuccess('Configuration saved! Synchronizing with Google Cloud...', 'Settings Saved');
-  };
-
-  // Update PIN
-  const handleUpdatePin = (e) => {
-    e.preventDefault();
-    if (newPin !== confirmPin) {
-      showError('New PIN and confirmation PIN do not match.');
-      return;
-    }
-    const res = updatePin(oldPin, newPin);
-    if (res.success) {
-      showSuccess(res.message);
-      setOldPin('');
-      setNewPin('');
-      setConfirmPin('');
-    } else {
-      showError(res.error);
-    }
   };
 
   // Export JSON backup
@@ -594,94 +577,121 @@ export const Settings = () => {
           </form>
         </div>
 
-        {/* Security & Access PIN */}
+        {/* Security / Firebase Authentication Section */}
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--primary-50)',
+                  color: 'var(--primary-600)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Security</h3>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                      color: 'var(--primary-600)',
+                      border: '1px solid rgba(99, 102, 241, 0.2)'
+                    }}
+                  >
+                    Firebase Authentication
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Manage PIN credentials and secure inventory access.
+                </p>
+              </div>
+            </div>
+
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--primary-50)',
-                color: 'var(--primary-600)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'var(--status-available-bg)',
+                border: '1px solid var(--status-available-border)',
+                color: 'var(--status-available-text)',
+                fontSize: '0.75rem',
+                fontWeight: 700
               }}
             >
-              <Lock size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Security & PIN Lock</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Protect inventory records with a 4-digit Passcode lock.
-              </p>
+              <CheckCircle2 size={13} />
+              <span>Session Active & Verified</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Require PIN on Launch</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Locks store data whenever session restarts.
+          <div
+            style={{
+              padding: '16px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Account
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', marginTop: '2px' }}>
+                  {currentUser?.email || authEmail || 'rathoremobiles07@gmail.com'}
+                </div>
               </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={isPinRequired}
-              onChange={(e) => setIsPinRequired(e.target.checked)}
-              style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-            />
-          </div>
 
-          {isPinRequired && (
-            <form onSubmit={handleUpdatePin} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '12px' }}>
-                Change 4-Digit Passcode (Default: 1234)
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                <div className="form-group">
-                  <label className="form-label">Current PIN</label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    className="input"
-                    value={oldPin}
-                    onChange={(e) => setOldPin(e.target.value)}
-                    placeholder="Current PIN"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">New PIN</label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    className="input"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="New 4-digit PIN"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Confirm New PIN</label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    required
-                    className="input"
-                    value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value)}
-                    placeholder="Repeat new PIN"
-                  />
-                </div>
-              </div>
-              <button type="submit" className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }}>
-                Update Passcode
+              <button
+                type="button"
+                onClick={() => setIsChangePinOpen(true)}
+                className="btn btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem',
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <KeyRound size={15} />
+                <span>Change PIN</span>
               </button>
-            </form>
-          )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Firebase Project: <strong style={{ color: 'var(--text-primary)' }}>rathore-mobiles-45ca8</strong>
+              </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}
+              >
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Local Data Management & Backup */}
@@ -739,6 +749,15 @@ export const Settings = () => {
         </div>
 
       </div>
+
+      {/* Change PIN Modal Dialog */}
+      <ChangePinModal
+        isOpen={isChangePinOpen}
+        onClose={() => setIsChangePinOpen(false)}
+        onSuccess={() => {
+          showSuccess('PIN changed successfully.', 'PIN Updated');
+        }}
+      />
     </div>
   );
 };

@@ -41,7 +41,7 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'primary'
       className="card card-interactive"
       onClick={onClick}
       style={{
-        padding: '18px 20px',
+        padding: '14px 16px',
         backgroundColor: scheme.bg,
         borderColor: scheme.border,
         cursor: onClick ? 'pointer' : 'default',
@@ -49,18 +49,26 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'primary'
         flexDirection: 'column',
         justifyContent: 'space-between',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minWidth: 0
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+        <span
+          style={{
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.3
+          }}
+        >
           {title}
         </span>
         {Icon && (
           <div
             style={{
-              padding: '8px',
-              borderRadius: 'var(--radius-md)',
+              padding: '6px',
+              borderRadius: 'var(--radius-sm)',
               backgroundColor: scheme.iconBg,
               color: scheme.iconColor,
               display: 'flex',
@@ -69,25 +77,38 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, color = 'primary'
               flexShrink: 0
             }}
           >
-            <Icon size={18} />
+            <Icon size={16} />
           </div>
         )}
       </div>
 
-      <div>
+      <div style={{ minWidth: 0 }}>
         <div
           style={{
-            fontSize: '1.5rem',
+            fontSize: 'clamp(1.15rem, 3.8vw, 1.45rem)',
             fontWeight: 800,
             color: 'var(--text-primary)',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.15
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
           }}
         >
           {value}
         </div>
         {subtitle && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
+          <div
+            style={{
+              fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+              marginTop: '3px',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
             {subtitle}
           </div>
         )}

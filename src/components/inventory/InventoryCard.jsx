@@ -19,20 +19,21 @@ export const InventoryCard = ({
       className="card card-interactive"
       onClick={() => onViewDetails(item)}
       style={{
-        padding: '14px',
+        padding: '12px 14px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '10px',
         cursor: 'pointer',
-        position: 'relative'
+        position: 'relative',
+        minWidth: 0
       }}
     >
       {/* Top row: Image & Info */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', minWidth: 0 }}>
         <div
           style={{
-            width: '68px',
-            height: '68px',
+            width: '64px',
+            height: '64px',
             borderRadius: 'var(--radius-md)',
             overflow: 'hidden',
             backgroundColor: 'var(--bg-subtle)',
@@ -53,7 +54,7 @@ export const InventoryCard = ({
               }}
             />
           ) : (
-            <Smartphone size={24} color="var(--text-muted)" />
+            <Smartphone size={22} color="var(--text-muted)" />
           )}
         </div>
 
@@ -61,7 +62,7 @@ export const InventoryCard = ({
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
             <div
               style={{
-                fontSize: '0.95rem',
+                fontSize: '0.92rem',
                 fontWeight: 700,
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
@@ -81,8 +82,11 @@ export const InventoryCard = ({
               marginTop: '2px',
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '6px',
-              alignItems: 'center'
+              gap: '4px',
+              alignItems: 'center',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             <span style={{ fontWeight: 600 }}>{item.storage || '—'}</span>
@@ -92,18 +96,21 @@ export const InventoryCard = ({
 
           <div
             style={{
-              fontSize: '0.72rem',
+              fontSize: '0.7rem',
               color: 'var(--text-muted)',
               marginTop: '4px',
               fontFamily: 'monospace',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              gap: '4px'
             }}
           >
-            <span>IMEI: {item.imei_1 ? maskIMEI(item.imei_1) : item.inventory_id}</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              IMEI: {item.imei_1 ? maskIMEI(item.imei_1) : item.inventory_id}
+            </span>
             {item.battery_health && (
-              <span style={{ color: item.battery_health >= 90 ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
+              <span style={{ color: item.battery_health >= 90 ? '#10b981' : '#f59e0b', fontWeight: 700, flexShrink: 0 }}>
                 {item.battery_health}%
               </span>
             )}
@@ -114,30 +121,31 @@ export const InventoryCard = ({
       {/* Bottom Pricing & Action bar */}
       <div
         style={{
-          paddingTop: '10px',
+          paddingTop: '8px',
           borderTop: '1px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          gap: '8px'
         }}
       >
-        <div>
-          <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
             <span>{formatCurrency(item.purchase_price, settings.currency)}</span>
             <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>→</span>
             <span style={{ color: 'var(--primary-600)' }}>{formatCurrency(item.selling_price, settings.currency)}</span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 600 }}>
             +{formatCurrency((Number(item.selling_price) || 0) - (Number(item.purchase_price) || 0), settings.currency)} ({margin}% margin)
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
           {item.status !== 'Sold' && (
             <button
               className="btn btn-primary btn-sm"
               onClick={() => onMarkSold(item)}
-              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+              style={{ padding: '6px 10px', height: '34px', fontSize: '0.75rem', fontWeight: 700 }}
             >
               <DollarSign size={13} /> Sell
             </button>
@@ -145,6 +153,8 @@ export const InventoryCard = ({
           <button
             className="btn btn-subtle btn-sm btn-icon"
             onClick={() => onViewDetails(item)}
+            style={{ width: '34px', height: '34px' }}
+            title="View Details"
           >
             <ChevronRight size={16} />
           </button>

@@ -320,8 +320,8 @@ export const DeviceDetailsModal = ({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '12px'
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',
+                  gap: '10px'
                 }}
               >
                 <div className="card" style={{ padding: '12px 14px' }}>

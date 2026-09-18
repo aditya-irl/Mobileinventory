@@ -854,6 +854,64 @@ export const api = {
   },
 
   /**
+   * Update Purchase Record
+   */
+  updatePurchase: async (purchaseData) => {
+    if (!purchaseData || !purchaseData.purchase_id) {
+      throw new Error('purchase_id is required to update buyback record.');
+    }
+
+    const purchases = getLocalPurchases();
+    const index = purchases.findIndex(p => p.purchase_id === purchaseData.purchase_id);
+    const existing = index !== -1 ? purchases[index] : {};
+
+    const updatedPurchase = {
+      ...existing,
+      ...purchaseData,
+      updated_at: new Date().toISOString()
+    };
+
+    if (index !== -1) {
+      purchases[index] = updatedPurchase;
+      saveLocalPurchases(purchases);
+    } else {
+      saveLocalPurchases([updatedPurchase, ...purchases]);
+    }
+
+    // Also sync the linked inventory item's device photos, brand, model, price, etc.
+    if (purchaseData.inventory_id) {
+      try {
+        await api.updateInventory({
+          inventory_id: purchaseData.inventory_id,
+          brand: purchaseData.brand,
+          model: purchaseData.model,
+          variant: purchaseData.variant,
+          color: purchaseData.color,
+          storage: purchaseData.storage,
+          ram: purchaseData.ram,
+          imei_1: purchaseData.imei_1,
+          imei_2: purchaseData.imei_2,
+          serial_number: purchaseData.serial_number,
+          condition: purchaseData.condition,
+          battery_health: purchaseData.battery_health,
+          purchase_price: purchaseData.purchase_price,
+          selling_price: purchaseData.target_selling_price || purchaseData.selling_price,
+          photo_urls: purchaseData.device_photos || purchaseData.photo_urls,
+          notes: purchaseData.notes
+        });
+      } catch (invErr) {
+        console.warn('Could not sync linked inventory item during buyback update:', invErr);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Purchase ${purchaseData.purchase_id} updated.`,
+      data: updatedPurchase
+    };
+  },
+
+  /**
    * Trace IMEI
    */
   traceIMEI: async (imei) => {

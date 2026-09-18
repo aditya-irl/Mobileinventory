@@ -64,8 +64,8 @@ export const IMEITraceView = ({ onSelectPurchase, onSelectInventory }) => {
         </div>
 
         <form onSubmit={handleSearch} style={{ marginTop: '16px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 220px', position: 'relative', minWidth: 0 }}>
               <Search
                 size={16}
                 style={{
@@ -78,17 +78,18 @@ export const IMEITraceView = ({ onSelectPurchase, onSelectInventory }) => {
               />
               <input
                 type="text"
-                placeholder="Enter 15-digit IMEI or Serial Number..."
+                placeholder="Enter 15-digit IMEI / Serial..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="input"
-                style={{ paddingLeft: '38px', height: '44px', fontFamily: 'monospace' }}
+                style={{ paddingLeft: '38px', height: '44px', fontFamily: 'monospace', width: '100%' }}
               />
             </div>
             <button
               type="submit"
-              className="btn btn-primary btn-lg"
+              className="btn btn-primary"
               disabled={searching}
+              style={{ minHeight: '44px', flex: '0 0 auto' }}
             >
               {searching ? 'Tracing...' : 'Trace Device'}
             </button>
@@ -138,7 +139,7 @@ export const IMEITraceView = ({ onSelectPurchase, onSelectInventory }) => {
                       </span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '12px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginTop: '12px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                       <div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Seller Legal Name</div>
                         <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{pur.seller_name}</div>
@@ -184,7 +185,7 @@ export const IMEITraceView = ({ onSelectPurchase, onSelectInventory }) => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '12px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginTop: '12px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Device Specifications</div>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{inv.brand} {inv.model} ({inv.storage || ''})</div>

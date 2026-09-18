@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header } from '../components/common/Header';
 import { Sidebar } from '../components/common/Sidebar';
 import { BottomNav } from '../components/common/BottomNav';
+import { MobileDrawer } from '../components/common/MobileDrawer';
 import { Dashboard } from '../pages/Dashboard';
 import { Inventory } from '../pages/Inventory';
 import { AddInventory } from '../pages/AddInventory';
@@ -13,6 +14,7 @@ import { Settings } from '../pages/Settings';
 export const AppLayout = () => {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [selectedDeviceFromDash, setSelectedDeviceFromDash] = useState(null);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const handleSelectDeviceFromDash = (device) => {
     setSelectedDeviceFromDash(device);
@@ -29,6 +31,7 @@ export const AppLayout = () => {
         <Header
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
+          onOpenDrawer={() => setIsMobileDrawerOpen(true)}
           onSearchFocus={() => {
             if (currentTab !== 'inventory') {
               setCurrentTab('inventory');
@@ -76,6 +79,14 @@ export const AppLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />
+
+      {/* Mobile Navigation Drawer */}
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+      />
     </div>
   );
 };

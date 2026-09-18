@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { useToast } from '../../context/ToastContext';
 import { BarcodeScannerModal } from '../inventory/BarcodeScannerModal';
-import { compressImage } from '../../services/imageCompression';
+import { compressMultipleImages, compressImage } from '../../services/imageCompression';
 import { printBuybackReceipt } from '../../services/exportService';
-import { formatCurrency, calculateProfitMargin } from '../../utils/formatters';
+import { formatCurrency, calculateProfitMargin, getSafeImageUrl } from '../../utils/formatters';
+import { PhotoViewerModal } from '../common/PhotoViewerModal';
 import {
   BRAND_PRESETS,
   STORAGE_PRESETS,
@@ -31,17 +32,34 @@ import {
   Printer,
   Sparkles,
   AlertTriangle,
-  Info
+  Info,
+  FileText,
+  RotateCw,
+  Eye
 } from 'lucide-react';
 
 export const BuybackWizard = ({ onComplete }) => {
   const { inventory, addPurchaseTransaction, settings } = useInventory();
-  const { showError, showSuccess } = useToast();
+  const { showError, showSuccess, showWarning } = useToast();
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [scannerField, setScannerField] = useState(null);
   const [completedRecord, setCompletedRecord] = useState(null);
+
+  // Separated Photos State (No Artificial Limit)
+  const [documentPhotos, setDocumentPhotos] = useState([]);
+  const [devicePhotos, setDevicePhotos] = useState([]);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [uploadingDevices, setUploadingDevices] = useState(false);
+
+  // Full-size lightbox modal state
+  const [viewerState, setViewerState] = useState({
+    isOpen: false,
+    photos: [],
+    initialIndex: 0,
+    category: 'Document Photo'
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -52,8 +70,6 @@ export const BuybackWizard = ({ onComplete }) => {
     id_type: "Driver's License",
     id_number_ref: '',
     id_verification_status: 'Verified',
-    seller_photo_url: '',
-    document_photo_url: '',
 
     // Phone Specs
     brand: 'Apple',
@@ -83,30 +99,75 @@ export const BuybackWizard = ({ onComplete }) => {
     operator_name: 'Store Manager'
   });
 
-  const [sellerPhotoPreview, setSellerPhotoPreview] = useState(null);
-  const [documentPhotoPreview, setDocumentPhotoPreview] = useState(null);
-
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Image Upload Handlers
-  const handlePhotoUpload = async (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Upload Document Photos (Aadhaar, PAN, ID proof, address proof, purchase documents)
+  const handleDocumentPhotosUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
+    setUploadingDocs(true);
     try {
-      const compressed = await compressImage(file, 1200, 1200, 0.8);
-      if (type === 'seller') {
-        setSellerPhotoPreview(compressed.dataUrl);
-        handleChange('seller_photo_url', compressed.dataUrl);
-      } else {
-        setDocumentPhotoPreview(compressed.dataUrl);
-        handleChange('document_photo_url', compressed.dataUrl);
+      const { results, errors } = await compressMultipleImages(files);
+      if (errors.length > 0) {
+        showWarning(`Some files could not be processed: ${errors.join(', ')}`);
+      }
+
+      if (results.length > 0) {
+        const newUrls = results.map(r => r.dataUrl);
+        setDocumentPhotos(prev => [...prev, ...newUrls]);
+        showSuccess(`Added ${results.length} document photo(s).`);
       }
     } catch (err) {
-      showError('Failed to process photo: ' + err.message);
+      showError('Failed to process document photos: ' + err.message);
+    } finally {
+      setUploadingDocs(false);
+      e.target.value = '';
     }
+  };
+
+  // Upload Device Photos (Front, back, sides, display, condition, IMEI label, accessories)
+  const handleDevicePhotosUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    setUploadingDevices(true);
+    try {
+      const { results, errors } = await compressMultipleImages(files);
+      if (errors.length > 0) {
+        showWarning(`Some files could not be processed: ${errors.join(', ')}`);
+      }
+
+      if (results.length > 0) {
+        const newUrls = results.map(r => r.dataUrl);
+        setDevicePhotos(prev => [...prev, ...newUrls]);
+        showSuccess(`Added ${results.length} device photo(s).`);
+      }
+    } catch (err) {
+      showError('Failed to process device photos: ' + err.message);
+    } finally {
+      setUploadingDevices(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeDocumentPhoto = (index) => {
+    setDocumentPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeDevicePhoto = (index) => {
+    setDevicePhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openViewer = (photos, index, category) => {
+    setViewerState({
+      isOpen: true,
+      photos,
+      initialIndex: index,
+      category
+    });
   };
 
   // Duplicate IMEI check in current inventory
@@ -203,8 +264,13 @@ export const BuybackWizard = ({ onComplete }) => {
     setSubmitting(true);
     const result = await addPurchaseTransaction({
       ...formData,
-      seller_photo_base64: formData.seller_photo_url,
-      document_photo_base64: formData.document_photo_url,
+      document_photos: documentPhotos,
+      device_photos: devicePhotos,
+      photo_urls: devicePhotos,
+      seller_photo_url: documentPhotos[0] || '',
+      document_photo_url: JSON.stringify(documentPhotos),
+      seller_photo_base64: documentPhotos[0] || '',
+      document_photo_base64: documentPhotos[1] || documentPhotos[0] || '',
       seller_declaration: true
     });
     setSubmitting(false);
@@ -212,6 +278,8 @@ export const BuybackWizard = ({ onComplete }) => {
     if (result.success) {
       setCompletedRecord(result.data || {
         ...formData,
+        document_photos: documentPhotos,
+        device_photos: devicePhotos,
         purchase_id: result.purchase_id,
         inventory_id: result.inventory_id
       });
@@ -285,17 +353,17 @@ export const BuybackWizard = ({ onComplete }) => {
       </div>
 
       {/* Step Content */}
-      <div className="card" style={{ padding: '24px', marginBottom: '20px' }}>
+      <div className="card" style={{ padding: '18px 20px', marginBottom: '20px' }}>
         
         {/* STEP 1: Seller Details */}
         {step === 1 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <User size={18} color="var(--primary-600)" />
               1. Customer / Seller Information
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               <div className="form-group">
                 <label className="form-label">Seller Full Legal Name <span className="required">*</span></label>
                 <input
@@ -312,6 +380,7 @@ export const BuybackWizard = ({ onComplete }) => {
                 <label className="form-label">Seller Contact Mobile <span className="required">*</span></label>
                 <input
                   type="tel"
+                  inputMode="tel"
                   required
                   className="input"
                   placeholder="e.g. +91 98450 12345"
@@ -320,7 +389,7 @@ export const BuybackWizard = ({ onComplete }) => {
                 />
               </div>
 
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <div className="form-group">
                 <label className="form-label">Residential Address</label>
                 <textarea
                   rows={2}
@@ -337,12 +406,12 @@ export const BuybackWizard = ({ onComplete }) => {
         {/* STEP 2: Identity Verification */}
         {step === 2 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldCheck size={18} color="var(--primary-600)" />
               2. Government Identity Verification
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               <div className="form-group">
                 <label className="form-label">ID Verification Document Type <span className="required">*</span></label>
                 <select
@@ -387,100 +456,247 @@ export const BuybackWizard = ({ onComplete }) => {
           </div>
         )}
 
-        {/* STEP 3: KYC Documents / Photos */}
+        {/* STEP 3: Photos & Proofs (Separated Document Photos & Device Photos) */}
         {step === 3 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Camera size={18} color="var(--primary-600)" />
-              3. Seller Photograph & Document Capture
+              3. Buyback Photos & Verification Proofs
             </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Upload all verification documents and physical device condition photos. There is no limit on photo count.
+            </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
-              {/* Seller Face Photo */}
-              <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '8px' }}>
-                  Seller Face Photograph
-                </div>
-                
-                {sellerPhotoPreview ? (
-                  <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                    <img src={sellerPhotoPreview} alt="Seller" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      type="button"
-                      onClick={() => setSellerPhotoPreview(null)}
-                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <X size={13} />
-                    </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px' }}>
+              
+              {/* Category A: DOCUMENT PHOTOS */}
+              <div
+                className="card"
+                style={{
+                  padding: '16px',
+                  backgroundColor: 'rgba(5, 150, 105, 0.03)',
+                  border: '1.5px solid rgba(5, 150, 105, 0.25)',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FileText size={18} color="#059669" />
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#059669' }}>
+                      Document Photos ({documentPhotos.length})
+                    </span>
                   </div>
-                ) : (
+                </div>
+
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Aadhaar, PAN, ID proof, address proof, purchase documents, etc.
+                </p>
+
+                {/* Document Thumbnails Grid */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', minHeight: '84px' }}>
+                  {documentPhotos.map((url, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        border: '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        backgroundColor: 'var(--bg-subtle)'
+                      }}
+                      onClick={() => openViewer(documentPhotos, idx, 'Document Photo')}
+                    >
+                      <img
+                        src={getSafeImageUrl(url)}
+                        alt={`Document ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeDocumentPhoto(idx);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          right: '3px',
+                          background: 'rgba(239, 68, 68, 0.95)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '22px',
+                          height: '22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        }}
+                        title="Remove Document Photo"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add Document Photo Upload Button */}
                   <label
                     style={{
-                      width: '160px',
-                      height: '160px',
-                      margin: '0 auto',
+                      width: '80px',
+                      height: '80px',
                       borderRadius: 'var(--radius-md)',
-                      border: '2px dashed var(--border-strong)',
+                      border: '2px dashed #059669',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: 'var(--text-muted)',
-                      gap: '6px',
-                      fontSize: '0.75rem',
-                      backgroundColor: 'var(--bg-subtle)'
+                      cursor: uploadingDocs ? 'not-allowed' : 'pointer',
+                      color: '#059669',
+                      gap: '4px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      backgroundColor: 'rgba(5, 150, 105, 0.08)'
                     }}
                   >
-                    <Camera size={24} color="var(--primary-600)" />
-                    <span>Upload / Snap Seller</span>
-                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'seller')} style={{ display: 'none' }} />
+                    {uploadingDocs ? (
+                      <RotateCw size={18} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>+ Add</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      disabled={uploadingDocs}
+                      onChange={handleDocumentPhotosUpload}
+                      style={{ display: 'none' }}
+                    />
                   </label>
-                )}
+                </div>
               </div>
 
-              {/* ID Document Photo */}
-              <div className="card" style={{ padding: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '8px' }}>
-                  ID Proof Document Copy
+              {/* Category B: DEVICE PHOTOS */}
+              <div
+                className="card"
+                style={{
+                  padding: '16px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.03)',
+                  border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                  borderRadius: 'var(--radius-lg)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Smartphone size={18} color="var(--primary-600)" />
+                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--primary-600)' }}>
+                      Device Photos ({devicePhotos.length})
+                    </span>
+                  </div>
                 </div>
 
-                {documentPhotoPreview ? (
-                  <div style={{ position: 'relative', width: '160px', height: '160px', margin: '0 auto', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                    <img src={documentPhotoPreview} alt="ID Document" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      type="button"
-                      onClick={() => setDocumentPhotoPreview(null)}
-                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(239, 68, 68, 0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Front, back, sides, display, condition, IMEI label, accessories, etc.
+                </p>
+
+                {/* Device Thumbnails Grid */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', minHeight: '84px' }}>
+                  {devicePhotos.map((url, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        border: '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        backgroundColor: 'var(--bg-subtle)'
+                      }}
+                      onClick={() => openViewer(devicePhotos, idx, 'Device Photo')}
                     >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
+                      <img
+                        src={getSafeImageUrl(url)}
+                        alt={`Device ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&auto=format&fit=crop&q=80'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeDevicePhoto(idx);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          right: '3px',
+                          background: 'rgba(239, 68, 68, 0.95)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '22px',
+                          height: '22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                        }}
+                        title="Remove Device Photo"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add Device Photo Upload Button */}
                   <label
                     style={{
-                      width: '160px',
-                      height: '160px',
-                      margin: '0 auto',
+                      width: '80px',
+                      height: '80px',
                       borderRadius: 'var(--radius-md)',
-                      border: '2px dashed var(--border-strong)',
+                      border: '2px dashed var(--primary-600)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: 'var(--text-muted)',
-                      gap: '6px',
-                      fontSize: '0.75rem',
-                      backgroundColor: 'var(--bg-subtle)'
+                      cursor: uploadingDevices ? 'not-allowed' : 'pointer',
+                      color: 'var(--primary-600)',
+                      gap: '4px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      backgroundColor: 'rgba(99, 102, 241, 0.08)'
                     }}
                   >
-                    <Upload size={24} color="var(--primary-600)" />
-                    <span>Upload ID Copy</span>
-                    <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, 'doc')} style={{ display: 'none' }} />
+                    {uploadingDevices ? (
+                      <RotateCw size={18} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>+ Add</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      disabled={uploadingDevices}
+                      onChange={handleDevicePhotosUpload}
+                      style={{ display: 'none' }}
+                    />
                   </label>
-                )}
+                </div>
               </div>
+
             </div>
           </div>
         )}
@@ -488,12 +704,12 @@ export const BuybackWizard = ({ onComplete }) => {
         {/* STEP 4: Device Specs */}
         {step === 4 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Smartphone size={18} color="var(--primary-600)" />
               4. Purchased Phone Specifications
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               <div className="form-group">
                 <label className="form-label">Brand <span className="required">*</span></label>
                 <select
@@ -584,6 +800,7 @@ export const BuybackWizard = ({ onComplete }) => {
                 <label className="form-label">Battery Health (%)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   max="100"
                   className="input"
@@ -598,7 +815,7 @@ export const BuybackWizard = ({ onComplete }) => {
         {/* STEP 5: IMEI & Security Verification */}
         {step === 5 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={18} color="var(--primary-600)" />
               5. IMEI Verification & Internal Risk Check
             </h3>
@@ -629,7 +846,7 @@ export const BuybackWizard = ({ onComplete }) => {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               <div className="form-group">
                 <label className="form-label">
                   <span>Primary IMEI (IMEI 1) <span className="required">*</span></span>
@@ -645,6 +862,7 @@ export const BuybackWizard = ({ onComplete }) => {
                   type="text"
                   required
                   maxLength={16}
+                  inputMode="numeric"
                   className="input"
                   placeholder="15-digit primary IMEI"
                   value={formData.imei_1}
@@ -666,6 +884,7 @@ export const BuybackWizard = ({ onComplete }) => {
                 <input
                   type="text"
                   maxLength={16}
+                  inputMode="numeric"
                   className="input"
                   placeholder="15-digit secondary IMEI / eSIM"
                   value={formData.imei_2}
@@ -690,18 +909,19 @@ export const BuybackWizard = ({ onComplete }) => {
         {/* STEP 6: Commercials & Pricing */}
         {step === 6 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <DollarSign size={18} color="var(--primary-600)" />
               6. Purchase Price & Payment Disbursement
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               <div className="form-group">
                 <label className="form-label">
                   <span>Agreed Purchase Price ({settings.currency}) <span className="required">*</span></span>
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   required
                   min="0"
                   className="input"
@@ -717,6 +937,7 @@ export const BuybackWizard = ({ onComplete }) => {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   className="input"
                   placeholder="e.g. 88000"
@@ -748,194 +969,276 @@ export const BuybackWizard = ({ onComplete }) => {
                   backgroundColor: 'var(--status-available-bg)',
                   border: '1px solid var(--status-available-border)',
                   display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  flexWrap: 'wrap',
+                  gap: '8px'
                 }}
               >
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Estimated Inventory Margin:
+                    Target Gross Profit Margin:
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>
-                    +{formatCurrency(estimatedProfit, settings.currency)}
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>
+                    +{formatCurrency(estimatedProfit, settings.currency)} ({calculateProfitMargin(formData.purchase_price, formData.target_selling_price || Math.round(formData.purchase_price * 1.15))}%)
                   </div>
                 </div>
-                <div style={{ fontWeight: 700, color: 'var(--status-available-text)', fontSize: '0.875rem' }}>
-                  +{calculateProfitMargin(formData.purchase_price, formData.target_selling_price || Math.round(Number(formData.purchase_price) * 1.15))}% Margin
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  Payable via: <strong>{formData.payment_method}</strong>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* STEP 7: Seller Declaration & Legal Terms */}
+        {/* STEP 7: Legal Declaration & Customer Consent */}
         {step === 7 && (
           <div className="animate-fade-in">
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FileCheck size={18} color="var(--primary-600)" />
-              7. Seller Ownership & Legal Declaration
+              7. Legal Declaration & Customer Affirmation
             </h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  padding: '14px',
-                  backgroundColor: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer'
-                }}
-              >
+            <div
+              style={{
+                padding: '16px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
+                marginBottom: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.84rem' }}>
                 <input
                   type="checkbox"
                   checked={formData.seller_declaration_ownership}
                   onChange={(e) => handleChange('seller_declaration_ownership', e.target.checked)}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  <strong>Lawful Ownership:</strong> The seller affirms that they are the rightful, legal owner of this device with full power to sell and transfer absolute title.
+                <span>
+                  <strong>Sole Ownership:</strong> I certify that I am the rightful, lawful owner of this smartphone ({formData.brand} {formData.model}, IMEI: {formData.imei_1}) and have the full legal right to sell/trade it.
                 </span>
               </label>
 
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  padding: '14px',
-                  backgroundColor: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer'
-                }}
-              >
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.84rem' }}>
                 <input
                   type="checkbox"
                   checked={formData.seller_declaration_wiped}
                   onChange={(e) => handleChange('seller_declaration_wiped', e.target.checked)}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  <strong>Data & Account Removal:</strong> All personal data, Google/iCloud accounts, and lock screen PINs have been permanently wiped prior to sale.
+                <span>
+                  <strong>Accounts & Security Removed:</strong> I confirm that all personal iCloud, Google, Mi Account, Samsung Cloud, screen lock PINs, and biometrics have been completely signed out and removed.
                 </span>
               </label>
 
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  padding: '14px',
-                  backgroundColor: 'var(--bg-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer'
-                }}
-              >
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.84rem' }}>
                 <input
                   type="checkbox"
                   checked={formData.seller_declaration_lawful}
                   onChange={(e) => handleChange('seller_declaration_lawful', e.target.checked)}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
                 />
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                  <strong>Non-Encumbrance & Lawful Origin:</strong> The device is not blacklisted, financed with pending dues, or obtained through illegal or stolen means.
+                <span>
+                  <strong>Lawful Origin:</strong> This device is free from liens, unpaid financing loans, police reports, or any claims of theft. I agree to indemnify {settings.storeName || 'the store'} against any false declarations.
                 </span>
               </label>
+            </div>
 
-              <div className="form-group" style={{ marginTop: '8px' }}>
-                <label className="form-label">Inspection & Additional Notes</label>
-                <textarea
-                  rows={2}
-                  className="textarea"
-                  placeholder="Remarks on physical condition, box included, charger, or trade-in rationale..."
-                  value={formData.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
-                />
-              </div>
+            <div className="form-group">
+              <label className="form-label">Operator / Store Attendant Notes</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Inspected by staff, condition observations..."
+                value={formData.notes}
+                onChange={(e) => handleChange('notes', e.target.value)}
+              />
             </div>
           </div>
         )}
 
-        {/* STEP 8: Completed Summary */}
+        {/* STEP 8: Completed Confirmation */}
         {step === 8 && completedRecord && (
-          <div className="animate-fade-in" style={{ textAlign: 'center', padding: '20px 0' }}>
+          <div className="animate-fade-in" style={{ textAlign: 'center', padding: '20px 10px' }}>
             <div
               style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
                 backgroundColor: 'var(--status-available-bg)',
-                color: '#10b981',
+                color: 'var(--status-available-text)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px auto'
+                margin: '0 auto 16px'
               }}
             >
               <CheckCircle size={36} />
             </div>
 
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Buyback Completed & Recorded!
-            </h3>
-
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '4px', marginBottom: '24px' }}>
-              Transaction saved to Purchases ledger and phone cataloged into Available inventory.
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '4px' }}>
+              Buyback Transaction Completed!
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '20px' }}>
+              The device has been authenticated, added to active inventory, and assigned audit IDs.
             </p>
 
             <div
+              className="form-grid-responsive"
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '14px',
                 textAlign: 'left',
                 backgroundColor: 'var(--bg-subtle)',
-                padding: '18px',
-                borderRadius: 'var(--radius-lg)',
+                padding: '16px',
+                borderRadius: 'var(--radius-md)',
                 marginBottom: '24px'
               }}
             >
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Purchase ID</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-600)', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Purchase Record ID</span>
+                <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem' }}>
                   {completedRecord.purchase_id}
                 </div>
               </div>
-
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Linked Inventory ID</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981', fontFamily: 'monospace' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Assigned Stock ID</span>
+                <div style={{ fontWeight: 800, fontFamily: 'monospace', fontSize: '0.9rem', color: 'var(--primary-600)' }}>
                   {completedRecord.inventory_id}
                 </div>
               </div>
-
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Seller Name</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                  {completedRecord.seller_name}
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Customer</span>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                  {completedRecord.seller_name} ({completedRecord.seller_phone})
                 </div>
               </div>
-
               <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Disbursed Amount</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Disbursed Amount</span>
+                <div style={{ fontWeight: 800, fontSize: '1rem', color: '#10b981' }}>
                   {formatCurrency(completedRecord.purchase_price, settings.currency)}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Photos Summary in Completion Step */}
+            {(documentPhotos.length > 0 || devicePhotos.length > 0) && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+                  gap: '14px',
+                  marginBottom: '24px',
+                  textAlign: 'left'
+                }}
+              >
+                {/* Document Photos Confirmation Preview */}
+                <div
+                  className="card"
+                  style={{
+                    padding: '14px',
+                    backgroundColor: 'rgba(5, 150, 105, 0.04)',
+                    border: '1px solid rgba(5, 150, 105, 0.25)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#059669', fontWeight: 800, fontSize: '0.85rem' }}>
+                    <FileText size={16} />
+                    Document Photos ({documentPhotos.length})
+                  </div>
+                  {documentPhotos.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No documents attached</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {documentPhotos.map((url, i) => (
+                        <div
+                          key={i}
+                          onClick={() => openViewer(documentPhotos, i, 'Document Photo')}
+                          style={{
+                            width: '54px',
+                            height: '54px',
+                            borderRadius: 'var(--radius-sm)',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'var(--bg-subtle)'
+                          }}
+                        >
+                          <img
+                            src={getSafeImageUrl(url)}
+                            alt={`Doc ${i + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'; }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Device Photos Confirmation Preview */}
+                <div
+                  className="card"
+                  style={{
+                    padding: '14px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: 'var(--primary-600)', fontWeight: 800, fontSize: '0.85rem' }}>
+                    <Smartphone size={16} />
+                    Device Photos ({devicePhotos.length})
+                  </div>
+                  {devicePhotos.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No device photos attached</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {devicePhotos.map((url, i) => (
+                        <div
+                          key={i}
+                          onClick={() => openViewer(devicePhotos, i, 'Device Photo')}
+                          style={{
+                            width: '54px',
+                            height: '54px',
+                            borderRadius: 'var(--radius-sm)',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            border: '1px solid var(--border-subtle)',
+                            backgroundColor: 'var(--bg-subtle)'
+                          }}
+                        >
+                          <img
+                            src={getSafeImageUrl(url)}
+                            alt={`Device ${i + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&auto=format&fit=crop&q=80'; }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
+                type="button"
                 className="btn btn-primary btn-lg"
                 onClick={() => printBuybackReceipt(completedRecord, settings.storeName, settings.currency)}
+                style={{ flex: 1, minWidth: '200px' }}
               >
-                <Printer size={18} /> Print Buyback Invoice & Certificate
+                <Printer size={18} /> Print Buyback Certificate
               </button>
 
               <button
+                type="button"
                 className="btn btn-secondary btn-lg"
                 onClick={onComplete}
+                style={{ flex: 1, minWidth: '160px' }}
               >
                 View Purchase Ledger
               </button>
@@ -947,12 +1250,13 @@ export const BuybackWizard = ({ onComplete }) => {
 
       {/* Navigation Buttons (Steps 1 to 7) */}
       {step < 8 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-secondary"
             onClick={handleBack}
             disabled={step === 1 || submitting}
+            style={{ flex: 1, minWidth: '100px', height: '44px' }}
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -962,19 +1266,20 @@ export const BuybackWizard = ({ onComplete }) => {
               type="button"
               className="btn btn-primary"
               onClick={handleNext}
+              style={{ flex: 1, minWidth: '140px', height: '44px' }}
             >
               Next Step <ArrowRight size={16} />
             </button>
           ) : (
             <button
               type="button"
-              className="btn btn-primary btn-lg"
+              className="btn btn-primary"
               onClick={handleSubmit}
               disabled={submitting}
-              style={{ backgroundColor: '#059669' }}
+              style={{ backgroundColor: '#059669', flex: 2, minWidth: '180px', height: '44px' }}
             >
               <CheckCircle size={18} />
-              {submitting ? 'Creating Purchase Records...' : 'Complete Buyback Transaction'}
+              {submitting ? 'Creating Records...' : 'Complete Buyback Transaction'}
             </button>
           )}
         </div>
@@ -989,6 +1294,15 @@ export const BuybackWizard = ({ onComplete }) => {
             handleChange(scannerField, scannedVal);
           }
         }}
+      />
+
+      {/* Full-size Photo Lightbox Viewer */}
+      <PhotoViewerModal
+        isOpen={viewerState.isOpen}
+        photos={viewerState.photos}
+        initialIndex={viewerState.initialIndex}
+        category={viewerState.category}
+        onClose={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

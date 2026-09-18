@@ -251,6 +251,23 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
+  // Update Purchase Transaction
+  const updatePurchaseTransaction = async (purchaseData) => {
+    try {
+      const result = await api.updatePurchase(purchaseData);
+      if (result.success) {
+        await fetchAllData(true);
+        showSuccess(`Buyback record ${purchaseData.purchase_id} updated.`, 'Record Updated');
+        return { success: true, data: result.data };
+      }
+      showError(result.error || 'Failed to update buyback record.');
+      return { success: false, error: result.error };
+    } catch (err) {
+      showError(err.message || 'Unable to update buyback record.');
+      return { success: false, error: err.message };
+    }
+  };
+
   // Trace IMEI
   const traceIMEI = async (imei) => {
     try {
@@ -513,6 +530,7 @@ export const InventoryProvider = ({ children }) => {
         fetchInventory: fetchAllData,
         addInventoryItem,
         addPurchaseTransaction,
+        updatePurchaseTransaction,
         uploadDevicePhoto,
         traceIMEI,
         archivePurchase,

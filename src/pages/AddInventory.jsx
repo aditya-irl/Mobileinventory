@@ -284,26 +284,27 @@ export const AddInventory = ({ setCurrentTab }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Quick Brand Selector Chips */}
-          <div className="card" style={{ padding: '16px' }}>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '10px', color: 'var(--text-secondary)' }}>
-              Quick Select Popular Brands:
+          <div className="card" style={{ padding: '14px 16px' }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>
+              Quick Select Brand:
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="horizontal-scroll-chips">
               {['Apple', 'Samsung', 'Google', 'OnePlus', 'Xiaomi', 'Nothing', 'Motorola', 'Vivo', 'Realme'].map(b => (
                 <button
                   type="button"
                   key={b}
                   onClick={() => handleChange('brand', b)}
                   style={{
-                    padding: '6px 12px',
+                    padding: '8px 14px',
                     borderRadius: 'var(--radius-full)',
                     border: '1px solid',
                     borderColor: formData.brand === b ? 'var(--primary-600)' : 'var(--border-subtle)',
                     backgroundColor: formData.brand === b ? 'var(--primary-50)' : 'var(--bg-surface)',
                     color: formData.brand === b ? 'var(--primary-600)' : 'var(--text-secondary)',
-                    fontWeight: formData.brand === b ? 700 : 500,
+                    fontWeight: formData.brand === b ? 700 : 600,
                     fontSize: '0.8125rem',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
                     transition: 'all var(--transition-fast)'
                   }}
                 >
@@ -314,13 +315,13 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Section 1: Device Details */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Smartphone size={18} color="var(--primary-600)" />
               Device Specifications
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               {/* Brand */}
               <div className="form-group">
                 <label className="form-label">Brand <span className="required">*</span></label>
@@ -407,13 +408,13 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Section 2: Identification */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Shield size={18} color="var(--primary-600)" />
               Device Identification (IMEI & Serial)
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               {/* IMEI 1 */}
               <div className="form-group">
                 <label className="form-label">
@@ -429,6 +430,7 @@ export const AddInventory = ({ setCurrentTab }) => {
                 <input
                   type="text"
                   maxLength={16}
+                  inputMode="numeric"
                   className={`input ${errors.imei_1 ? 'input-error' : ''}`}
                   placeholder="15-digit primary IMEI"
                   value={formData.imei_1}
@@ -452,6 +454,7 @@ export const AddInventory = ({ setCurrentTab }) => {
                 <input
                   type="text"
                   maxLength={16}
+                  inputMode="numeric"
                   className={`input ${errors.imei_2 ? 'input-error' : ''}`}
                   placeholder="15-digit secondary IMEI"
                   value={formData.imei_2}
@@ -475,13 +478,13 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Section 3: Financials & Margin Preview */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <DollarSign size={18} color="var(--primary-600)" />
               Financials & Pricing
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               {/* Purchase Price */}
               <div className="form-group">
                 <label className="form-label">
@@ -489,6 +492,7 @@ export const AddInventory = ({ setCurrentTab }) => {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   required
                   min="0"
                   className={`input ${errors.purchase_price ? 'input-error' : ''}`}
@@ -506,6 +510,7 @@ export const AddInventory = ({ setCurrentTab }) => {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="0"
                   className={`input ${errors.selling_price ? 'input-error' : ''}`}
                   placeholder="e.g. 88000"
@@ -544,24 +549,26 @@ export const AddInventory = ({ setCurrentTab }) => {
               <div
                 style={{
                   marginTop: '16px',
-                  padding: '14px 18px',
+                  padding: '12px 16px',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: estimatedProfit >= 0 ? 'var(--status-available-bg)' : 'var(--status-danger-bg)',
                   border: `1px solid ${estimatedProfit >= 0 ? 'var(--status-available-border)' : 'var(--status-danger-border)'}`,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px'
                 }}
               >
                 <div>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Calculated Potential Profit:
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: estimatedProfit >= 0 ? '#10b981' : '#ef4444' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: estimatedProfit >= 0 ? '#10b981' : '#ef4444' }}>
                     {formatCurrency(estimatedProfit, settings.currency)}
                   </div>
                 </div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: estimatedProfit >= 0 ? 'var(--status-available-text)' : 'var(--status-danger-text)' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: estimatedProfit >= 0 ? 'var(--status-available-text)' : 'var(--status-danger-text)' }}>
                   +{profitMargin}% Margin
                 </div>
               </div>
@@ -569,18 +576,19 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Section 4: Condition, Battery & Warranty */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={18} color="var(--primary-600)" />
               Condition & Inspection
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="form-grid-responsive">
               {/* Battery Health */}
               <div className="form-group">
                 <label className="form-label">Battery Health (%)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   max="100"
                   className={`input ${errors.battery_health ? 'input-error' : ''}`}
@@ -633,7 +641,7 @@ export const AddInventory = ({ setCurrentTab }) => {
             </div>
 
             {/* Accessories */}
-            <div className="form-group" style={{ marginTop: '12px' }}>
+            <div className="form-group" style={{ marginTop: '12px', marginBottom: 0 }}>
               <label className="form-label">Included Accessories</label>
               <input
                 type="text"
@@ -646,24 +654,23 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Section 5: Photos & Notes */}
-          <div className="card" style={{ padding: '20px' }}>
+          <div className="card" style={{ padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Upload size={18} color="var(--primary-600)" />
-              Product Photos & Google Drive Storage
+              Product Photos & Storage
             </h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
               {storageMode === 'google'
-                ? 'Photos are automatically compressed and uploaded directly to Google Drive storage.'
-                : 'Running in Local Storage Mode. Photos will be saved locally.'}
+                ? 'Photos are compressed and uploaded directly to Google Drive.'
+                : 'Running in Local Storage Mode. Photos will be stored locally.'}
             </p>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: '10px', marginBottom: '16px' }}>
               {photoItems.map((item) => (
                 <div
                   key={item.id}
                   style={{
-                    width: '104px',
-                    height: '104px',
+                    aspectRatio: '1/1',
                     borderRadius: 'var(--radius-md)',
                     overflow: 'hidden',
                     position: 'relative',
@@ -696,14 +703,14 @@ export const AddInventory = ({ setCurrentTab }) => {
                         justifyContent: 'center',
                         gap: '4px',
                         color: '#fff',
-                        fontSize: '0.65rem',
+                        fontSize: '0.62rem',
                         fontWeight: 600,
                         padding: '4px',
                         textAlign: 'center'
                       }}
                     >
-                      <RotateCw size={18} className="animate-spin" color="#38bdf8" />
-                      <span>Uploading to Drive...</span>
+                      <RotateCw size={16} className="animate-spin" color="#38bdf8" />
+                      <span>Uploading...</span>
                     </div>
                   )}
 
@@ -712,24 +719,24 @@ export const AddInventory = ({ setCurrentTab }) => {
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: '4px',
-                        left: '4px',
-                        right: '4px',
+                        bottom: '3px',
+                        left: '3px',
+                        right: '3px',
                         backgroundColor: 'rgba(16, 185, 129, 0.9)',
                         color: '#fff',
-                        fontSize: '0.62rem',
+                        fontSize: '0.58rem',
                         fontWeight: 700,
-                        padding: '2px 4px',
-                        borderRadius: 'var(--radius-sm)',
+                        padding: '2px',
+                        borderRadius: 'var(--radius-xs)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '3px'
+                        gap: '2px'
                       }}
-                      title="Stored in Google Drive"
+                      title="Stored in Drive"
                     >
-                      <CheckCircle2 size={10} />
-                      <span>{storageMode === 'google' ? 'Google Drive' : 'Saved'}</span>
+                      <CheckCircle2 size={9} />
+                      <span>{storageMode === 'google' ? 'Drive' : 'Saved'}</span>
                     </div>
                   )}
 
@@ -744,26 +751,26 @@ export const AddInventory = ({ setCurrentTab }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '4px',
+                        gap: '2px',
                         color: '#fff',
-                        fontSize: '0.65rem',
-                        padding: '6px',
+                        fontSize: '0.62rem',
+                        padding: '4px',
                         textAlign: 'center'
                       }}
                     >
-                      <AlertCircle size={16} />
-                      <span style={{ lineHeight: 1.1 }}>Upload Failed</span>
+                      <AlertCircle size={14} />
+                      <span>Failed</span>
                       <button
                         type="button"
                         onClick={() => retryUploadPhoto(item)}
                         style={{
                           marginTop: '2px',
-                          padding: '2px 6px',
-                          borderRadius: 'var(--radius-sm)',
+                          padding: '2px 5px',
+                          borderRadius: 'var(--radius-xs)',
                           backgroundColor: '#fff',
                           color: '#ef4444',
                           border: 'none',
-                          fontSize: '0.65rem',
+                          fontSize: '0.62rem',
                           fontWeight: 700,
                           cursor: 'pointer'
                         }}
@@ -780,14 +787,14 @@ export const AddInventory = ({ setCurrentTab }) => {
                     title="Remove Photo"
                     style={{
                       position: 'absolute',
-                      top: '4px',
-                      right: '4px',
+                      top: '3px',
+                      right: '3px',
                       background: 'rgba(0, 0, 0, 0.65)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '50%',
-                      width: '20px',
-                      height: '20px',
+                      width: '22px',
+                      height: '22px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -803,8 +810,7 @@ export const AddInventory = ({ setCurrentTab }) => {
               {/* Add Photo Button */}
               <label
                 style={{
-                  width: '104px',
-                  height: '104px',
+                  aspectRatio: '1/1',
                   borderRadius: 'var(--radius-md)',
                   border: '2px dashed var(--border-strong)',
                   display: 'flex',
@@ -814,13 +820,13 @@ export const AddInventory = ({ setCurrentTab }) => {
                   cursor: compressing || submitting ? 'not-allowed' : 'pointer',
                   color: 'var(--text-muted)',
                   gap: '4px',
-                  fontSize: '0.75rem',
+                  fontSize: '0.72rem',
                   backgroundColor: 'var(--bg-subtle)',
                   transition: 'all var(--transition-fast)'
                 }}
               >
-                {compressing ? <RotateCw size={20} className="animate-spin" /> : <Upload size={20} />}
-                <span>{compressing ? 'Processing...' : '+ Add Photo'}</span>
+                {compressing ? <RotateCw size={18} className="animate-spin" /> : <Upload size={18} />}
+                <span>{compressing ? 'Compressing...' : '+ Add Photo'}</span>
                 <input
                   type="file"
                   multiple
@@ -833,7 +839,7 @@ export const AddInventory = ({ setCurrentTab }) => {
             </div>
 
             {/* Notes */}
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Inspection & Technical Notes</label>
               <textarea
                 rows={3}
@@ -846,12 +852,13 @@ export const AddInventory = ({ setCurrentTab }) => {
           </div>
 
           {/* Submit Action Bar */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px', flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn btn-secondary btn-lg"
               onClick={() => setCurrentTab('inventory')}
               disabled={submitting}
+              style={{ flex: 1, minWidth: '120px' }}
             >
               Cancel
             </button>
@@ -859,6 +866,7 @@ export const AddInventory = ({ setCurrentTab }) => {
               type="submit"
               className="btn btn-primary btn-lg"
               disabled={submitting}
+              style={{ flex: 2, minWidth: '180px' }}
             >
               <CheckCircle size={18} />
               {submitting ? 'Saving to Vault...' : 'Save Phone to Inventory'}

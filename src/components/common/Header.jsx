@@ -8,12 +8,14 @@ import {
   Moon,
   RotateCw,
   Lock,
+  LogOut,
   HardDrive,
   Database,
-  AlertCircle
+  AlertCircle,
+  Menu
 } from 'lucide-react';
 
-export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
+export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer }) => {
   const {
     searchQuery,
     setSearchQuery,
@@ -24,7 +26,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
     settings
   } = useInventory();
   const { isDark, toggleTheme } = useTheme();
-  const { logout, isPinRequired } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
 
   // Dynamic status rendering for pill
   const renderConnectionPill = () => {
@@ -37,14 +39,15 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '4px 10px',
+              padding: '4px 8px',
               borderRadius: 'var(--radius-full)',
               backgroundColor: 'var(--status-available-bg)',
               color: 'var(--status-available-text)',
               fontSize: '0.75rem',
               fontWeight: 600,
               cursor: 'pointer',
-              border: '1px solid var(--status-available-border)'
+              border: '1px solid var(--status-available-border)',
+              flexShrink: 0
             }}
             title="Google Sheets + Drive Database Active (Click to open Settings)"
           >
@@ -63,14 +66,15 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '4px 10px',
+              padding: '4px 8px',
               borderRadius: 'var(--radius-full)',
               backgroundColor: 'rgba(234, 179, 8, 0.15)',
               color: '#eab308',
               fontSize: '0.75rem',
               fontWeight: 600,
               cursor: 'pointer',
-              border: '1px solid rgba(234, 179, 8, 0.3)'
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              flexShrink: 0
             }}
             title="Connecting to Google Cloud..."
           >
@@ -89,14 +93,15 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '4px 10px',
+            padding: '4px 8px',
             borderRadius: 'var(--radius-full)',
             backgroundColor: 'var(--status-danger-bg)',
             color: 'var(--status-danger-text)',
             fontSize: '0.75rem',
             fontWeight: 600,
             cursor: 'pointer',
-            border: '1px solid var(--status-danger-border)'
+            border: '1px solid var(--status-danger-border)',
+            flexShrink: 0
           }}
           title={`Google Cloud Connection Failed: ${connectionStatus?.error || 'Click to view Settings'}`}
         >
@@ -115,14 +120,15 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '4px 10px',
+          padding: '4px 8px',
           borderRadius: 'var(--radius-full)',
           backgroundColor: 'var(--bg-subtle)',
           color: 'var(--text-secondary)',
           fontSize: '0.75rem',
           fontWeight: 600,
           cursor: 'pointer',
-          border: '1px solid var(--border-subtle)'
+          border: '1px solid var(--border-subtle)',
+          flexShrink: 0
         }}
         title="Local Storage Database Active (Click to configure Google Cloud)"
       >
@@ -137,24 +143,65 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
     <header
       className="card-glass"
       style={{
-        height: 'var(--header-height)',
+        minHeight: 'var(--header-height-mobile)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px',
-        borderBottom: '1px solid var(--border-subtle)'
+        padding: '8px 12px',
+        paddingTop: 'calc(8px + var(--safe-top))',
+        paddingLeft: 'max(12px, var(--safe-left))',
+        paddingRight: 'max(12px, var(--safe-right))',
+        borderBottom: '1px solid var(--border-subtle)',
+        gap: '8px'
       }}
     >
+      {/* Mobile Menu & Branding (Visible on Mobile) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          type="button"
+          onClick={onOpenDrawer}
+          className="btn btn-secondary btn-icon hide-desktop"
+          style={{ width: '38px', height: '38px', padding: 0, flexShrink: 0 }}
+          title="Open Menu"
+        >
+          <Menu size={20} />
+        </button>
+
+        <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '4px' }}>
+          <img
+            src="/logo.svg"
+            alt="Logo"
+            style={{ width: '28px', height: '28px', borderRadius: '6px' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+          <span
+            style={{
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+              maxWidth: '120px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {settings.storeName || 'PhoneVault'}
+          </span>
+        </div>
+      </div>
+
       {/* Search Input */}
-      <div style={{ flex: 1, maxWidth: '420px', position: 'relative' }}>
+      <div style={{ flex: 1, minWidth: '100px', maxWidth: '420px', position: 'relative' }}>
         <Search
-          size={16}
+          size={15}
           style={{
             position: 'absolute',
-            left: '12px',
+            left: '10px',
             top: '50%',
             transform: 'translateY(-50%)',
             color: 'var(--text-muted)',
@@ -163,7 +210,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
         />
         <input
           type="text"
-          placeholder="Search by IMEI, Model, ID, Supplier..."
+          placeholder="Search inventory..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -174,17 +221,18 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
           onFocus={onSearchFocus}
           className="input"
           style={{
-            paddingLeft: '36px',
-            paddingRight: '12px',
+            paddingLeft: '32px',
+            paddingRight: '8px',
             height: '38px',
             fontSize: '0.8125rem',
-            backgroundColor: 'var(--bg-subtle)'
+            backgroundColor: 'var(--bg-subtle)',
+            borderRadius: 'var(--radius-md)'
           }}
         />
       </div>
 
       {/* Right Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
         {/* Backend Connection Indicator Pill */}
         {renderConnectionPill()}
 
@@ -193,30 +241,30 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab }) => {
           className="btn btn-secondary btn-icon"
           onClick={() => fetchInventory(true)}
           title="Refresh Inventory"
-          style={{ width: '36px', height: '36px' }}
+          style={{ width: '36px', height: '36px', flexShrink: 0 }}
         >
-          <RotateCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          <RotateCw size={15} className={refreshing ? 'animate-spin' : ''} />
         </button>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle (Desktop Only or compact) */}
         <button
-          className="btn btn-secondary btn-icon"
+          className="btn btn-secondary btn-icon hide-mobile"
           onClick={toggleTheme}
           title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          style={{ width: '36px', height: '36px' }}
+          style={{ width: '36px', height: '36px', flexShrink: 0 }}
         >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          {isDark ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
-        {/* Lock Store / Logout */}
-        {isPinRequired && (
+        {/* Firebase Logout (Desktop Only - mobile has it in drawer) */}
+        {isAuthenticated && (
           <button
-            className="btn btn-secondary btn-icon"
+            className="btn btn-secondary btn-icon hide-mobile"
             onClick={logout}
-            title="Lock Store / Log Out"
-            style={{ width: '36px', height: '36px' }}
+            title="Log Out"
+            style={{ width: '36px', height: '36px', color: 'var(--text-secondary)', flexShrink: 0 }}
           >
-            <Lock size={16} />
+            <LogOut size={15} />
           </button>
         )}
       </div>

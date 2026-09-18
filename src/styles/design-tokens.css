@@ -68,7 +68,15 @@
   /* Layout dimensions */
   --sidebar-width: 260px;
   --header-height: 64px;
-  --bottom-nav-height: 68px;
+  --header-height-mobile: 58px;
+  --bottom-nav-height: 64px;
+  --touch-target: 44px;
+
+  /* Safe Area Insets for Mobile */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);

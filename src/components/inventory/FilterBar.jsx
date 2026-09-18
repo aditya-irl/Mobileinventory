@@ -43,17 +43,26 @@ export const FilterBar = () => {
     <div
       className="card"
       style={{
-        padding: '14px 16px',
-        marginBottom: '20px',
+        padding: '12px 14px',
+        marginBottom: '16px',
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '10px',
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: 'var(--bg-surface)'
       }}
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          alignItems: 'center',
+          flex: 1,
+          minWidth: '240px'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
           <Filter size={15} />
           <span>Filters:</span>
@@ -62,7 +71,7 @@ export const FilterBar = () => {
         {/* Status Dropdown */}
         <select
           className="select"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+          style={{ width: 'auto', minWidth: '115px', padding: '6px 10px', fontSize: '0.8125rem' }}
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
         >
@@ -75,7 +84,7 @@ export const FilterBar = () => {
         {/* Brand Dropdown */}
         <select
           className="select"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+          style={{ width: 'auto', minWidth: '105px', padding: '6px 10px', fontSize: '0.8125rem' }}
           value={selectedBrand}
           onChange={(e) => setSelectedBrand(e.target.value)}
         >
@@ -88,7 +97,7 @@ export const FilterBar = () => {
         {/* Condition Dropdown */}
         <select
           className="select"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+          style={{ width: 'auto', minWidth: '115px', padding: '6px 10px', fontSize: '0.8125rem' }}
           value={selectedCondition}
           onChange={(e) => setSelectedCondition(e.target.value)}
         >
@@ -101,7 +110,7 @@ export const FilterBar = () => {
         {/* Storage Dropdown */}
         <select
           className="select"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+          style={{ width: 'auto', minWidth: '105px', padding: '6px 10px', fontSize: '0.8125rem' }}
           value={selectedStorage}
           onChange={(e) => setSelectedStorage(e.target.value)}
         >
@@ -113,9 +122,10 @@ export const FilterBar = () => {
 
         {hasActiveFilters && (
           <button
+            type="button"
             className="btn btn-subtle btn-sm"
             onClick={clearAllFilters}
-            style={{ color: '#ef4444', fontWeight: 600 }}
+            style={{ color: '#ef4444', fontWeight: 600, padding: '4px 8px', height: '34px' }}
           >
             <X size={14} /> Clear All
           </button>
@@ -123,11 +133,11 @@ export const FilterBar = () => {
       </div>
 
       {/* Sorting Dropdown */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '150px' }}>
         <ArrowUpDown size={15} color="var(--text-muted)" />
         <select
           className="select"
-          style={{ width: 'auto', padding: '6px 12px', fontSize: '0.8125rem' }}
+          style={{ width: '100%', minWidth: '140px', padding: '6px 10px', fontSize: '0.8125rem' }}
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
         >

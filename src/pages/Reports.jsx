@@ -93,10 +93,11 @@ export const Reports = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={() => window.print()}
+            style={{ minHeight: '38px' }}
           >
             <Printer size={15} />
             <span className="hide-mobile">Print Report</span>
@@ -104,9 +105,10 @@ export const Reports = () => {
           <button
             className="btn btn-primary"
             onClick={() => exportInventoryToCSV(inventory, 'PhoneVault_Full_Report.csv')}
+            style={{ minHeight: '38px' }}
           >
             <Download size={15} />
-            Export Full Dataset
+            <span>Export Report</span>
           </button>
         </div>
       </div>
@@ -123,7 +125,7 @@ export const Reports = () => {
         <StatCard
           title="Capital Invested"
           value={formatCurrency(statistics.totalPurchaseValue, settings.currency)}
-          subtitle="Total stock procurement cost"
+          subtitle="Total procurement cost"
           icon={DollarSign}
           color="amber"
         />
@@ -135,7 +137,7 @@ export const Reports = () => {
           color="emerald"
         />
         <StatCard
-          title="Cumulative Realized Profit"
+          title="Cumulative Profit"
           value={formatCurrency(statistics.realizedProfit, settings.currency)}
           subtitle="All-time closed sales"
           icon={ShieldCheck}
@@ -150,7 +152,7 @@ export const Reports = () => {
           Inventory Aging & Velocity Health
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '14px' }}>
           <div
             style={{
               padding: '16px',

@@ -184,7 +184,7 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                 Device Information
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">Brand <span className="required">*</span></label>
                   <select
@@ -273,11 +273,12 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                 Identification & Hardware
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">IMEI 1</label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     maxLength={16}
                     className={`input ${errors.imei_1 ? 'input-error' : ''}`}
                     value={formData.imei_1}
@@ -291,6 +292,7 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                   <label className="form-label">IMEI 2</label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     maxLength={16}
                     className={`input ${errors.imei_2 ? 'input-error' : ''}`}
                     value={formData.imei_2}
@@ -315,6 +317,7 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                   <label className="form-label">Battery Health (%)</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="1"
                     max="100"
                     className={`input ${errors.battery_health ? 'input-error' : ''}`}
@@ -358,11 +361,12 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                 Financial Information
               </h4>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">Purchase Price ({settings.currency}) <span className="required">*</span></label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     required
                     min="0"
                     className={`input ${errors.purchase_price ? 'input-error' : ''}`}
@@ -376,6 +380,7 @@ export const EditInventoryModal = ({ item, isOpen, onClose }) => {
                   <label className="form-label">Selling Price ({settings.currency})</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="0"
                     className={`input ${errors.selling_price ? 'input-error' : ''}`}
                     value={formData.selling_price}

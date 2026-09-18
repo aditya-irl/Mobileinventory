@@ -265,25 +265,25 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          gap: '16px',
           marginBottom: '24px'
         }}
       >
         {/* Brand Distribution Chart */}
-        <div className="card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Stock by Brand</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Distribution</span>
+        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Stock by Brand</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Distribution</span>
           </div>
-          <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut
               data={brandChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                  legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
                 }
               }}
             />
@@ -291,19 +291,19 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
         </div>
 
         {/* Stock by Status Chart */}
-        <div className="card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Stock by Status</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lifecycle</span>
+        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Stock by Status</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Lifecycle</span>
           </div>
-          <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut
               data={statusChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                  legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
                 }
               }}
             />
@@ -311,12 +311,12 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
         </div>
 
         {/* Purchase vs Selling Value Bar Chart */}
-        <div className="card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Valuation & Margin Comparison</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Financials</span>
+        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Valuation & Margin Comparison</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Financials</span>
           </div>
-          <div style={{ height: '220px' }}>
+          <div style={{ height: '200px' }}>
             <Bar
               data={valuationBarData}
               options={{
@@ -327,11 +327,11 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      font: { size: 10 },
+                      font: { size: 9 },
                       callback: (val) => `${settings.currency}${(val / 1000).toFixed(0)}k`
                     }
                   },
-                  x: { ticks: { font: { size: 10 } } }
+                  x: { ticks: { font: { size: 9 } } }
                 }
               }}
             />
@@ -339,29 +339,29 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
         </div>
 
         {/* Monthly Sales & Profit Trend */}
-        <div className="card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Monthly Revenue & Profit Trends</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Last 6 Months</span>
+        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Monthly Revenue Trends</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Last 6 Months</span>
           </div>
-          <div style={{ height: '220px' }}>
+          <div style={{ height: '200px' }}>
             <Line
               data={salesTrendData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                  legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
                 },
                 scales: {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      font: { size: 10 },
+                      font: { size: 9 },
                       callback: (val) => `${settings.currency}${(val / 1000).toFixed(0)}k`
                     }
                   },
-                  x: { ticks: { font: { size: 10 } } }
+                  x: { ticks: { font: { size: 9 } } }
                 }
               }}
             />
@@ -370,17 +370,18 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
       </div>
 
       {/* Recent Inventory Additions */}
-      <div className="card" style={{ padding: '20px' }}>
+      <div className="card" style={{ padding: '16px 18px' }}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '16px'
+            marginBottom: '14px',
+            gap: '8px'
           }}
         >
           <div>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Recently Added Inventory</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Recently Added</h3>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               Latest phones onboarded into your vault.
             </p>
@@ -388,8 +389,10 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
           <button
             className="btn btn-subtle btn-sm"
             onClick={() => setCurrentTab('inventory')}
+            style={{ fontSize: '0.75rem', padding: '5px 10px', flexShrink: 0 }}
           >
-            View All Inventory <ArrowRight size={14} />
+            <span>View All</span>
+            <ArrowRight size={13} />
           </button>
         </div>
 
@@ -402,14 +405,15 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '10px 14px',
+                padding: '10px 12px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: 'var(--bg-subtle)',
                 cursor: 'pointer',
-                transition: 'background-color var(--transition-fast)'
+                transition: 'background-color var(--transition-fast)',
+                gap: '10px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                 <div
                   style={{
                     width: '38px',
@@ -420,7 +424,8 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '1px solid var(--border-subtle)'
+                    border: '1px solid var(--border-subtle)',
+                    flexShrink: 0
                   }}
                 >
                   {item.photo_urls && item.photo_urls[0] ? (
@@ -434,23 +439,39 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
                     <Smartphone size={18} color="var(--text-muted)" />
                   )}
                 </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
                     {item.brand} {item.model}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    ID: {item.inventory_id} • {item.storage || 'Standard'} • {item.color || ''}
+                  <div
+                    style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--text-muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    ID: {item.inventory_id} • {item.storage || '—'}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--primary-600)' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.84rem', color: 'var(--primary-600)' }}>
                     {formatCurrency(item.selling_price, settings.currency)}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Cost: {formatCurrency(item.purchase_price, settings.currency)}
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    {formatCurrency(item.purchase_price, settings.currency)}
                   </div>
                 </div>
                 <Badge status={item.status} size="sm" />

@@ -28,13 +28,16 @@ export const BottomNav = ({ currentTab, setCurrentTab }) => {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 'var(--bottom-nav-height)',
+        height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
         borderTop: '1px solid var(--border-subtle)',
         zIndex: 50,
-        paddingBottom: 'env(safe-area-inset-bottom, 6px)'
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+        userSelect: 'none'
       }}
     >
       {tabs.map(tab => {
