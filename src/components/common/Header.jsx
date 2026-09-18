@@ -141,6 +141,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
 
   return (
     <header
+      className="hide-mobile"
       style={{
         position: 'sticky',
         top: 0,
@@ -148,14 +149,11 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 'calc(8px + env(safe-area-inset-top, 0px))',
-        paddingBottom: '8px',
-        paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
-        paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
+        padding: '8px 24px',
         backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-        gap: '8px',
+        gap: '12px',
         width: '100%',
         boxSizing: 'border-box'
       }}

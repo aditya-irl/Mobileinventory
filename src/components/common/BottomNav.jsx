@@ -4,20 +4,19 @@ import {
   Smartphone,
   Plus,
   ShieldCheck,
-  ShoppingBag,
-  BarChart3
+  Menu
 } from 'lucide-react';
 import { useInventory } from '../../context/InventoryContext';
 
-export const BottomNav = ({ currentTab, setCurrentTab }) => {
+export const BottomNav = ({ currentTab, setCurrentTab, onOpenDrawer }) => {
   const { statistics, purchases } = useInventory();
 
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'inventory', label: 'Stock', icon: Smartphone, badge: statistics.available },
-    { id: 'purchases', label: 'Buyback', icon: ShieldCheck, badge: purchases.length },
     { id: 'add', label: 'Add', icon: Plus, isAction: true },
-    { id: 'sold', label: 'Sold', icon: ShoppingBag, badge: statistics.sold }
+    { id: 'purchases', label: 'Buyback', icon: ShieldCheck, badge: purchases.length || null },
+    { id: 'menu', label: 'Menu', icon: Menu, isMenu: true }
   ];
 
   return (
@@ -44,7 +43,9 @@ export const BottomNav = ({ currentTab, setCurrentTab }) => {
     >
       {tabs.map(tab => {
         const Icon = tab.icon;
-        const isActive = currentTab === tab.id;
+        const isActive = tab.isMenu
+          ? ['sold', 'reports', 'settings'].includes(currentTab)
+          : currentTab === tab.id;
 
         if (tab.isAction) {
           return (
@@ -73,10 +74,18 @@ export const BottomNav = ({ currentTab, setCurrentTab }) => {
           );
         }
 
+        const handleClick = () => {
+          if (tab.isMenu) {
+            if (onOpenDrawer) onOpenDrawer();
+          } else {
+            setCurrentTab(tab.id);
+          }
+        };
+
         return (
           <button
             key={tab.id}
-            onClick={() => setCurrentTab(tab.id)}
+            onClick={handleClick}
             style={{
               flex: 1,
               display: 'flex',

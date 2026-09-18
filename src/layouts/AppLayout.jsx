@@ -78,7 +78,11 @@ export const AppLayout = () => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      <BottomNav
+        currentTab={currentTab}
+        setCurrentTab={setCurrentTab}
+        onOpenDrawer={() => setIsMobileDrawerOpen(true)}
+      />
 
       {/* Mobile Navigation Drawer */}
       <MobileDrawer

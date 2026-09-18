@@ -6,7 +6,7 @@ import {
   CONDITION_PRESETS,
   STORAGE_PRESETS
 } from '../../data/sampleInventory';
-import { Filter, X, ArrowUpDown } from 'lucide-react';
+import { Filter, X, ArrowUpDown, Search, RotateCw } from 'lucide-react';
 
 export const FilterBar = () => {
   const {
@@ -21,7 +21,9 @@ export const FilterBar = () => {
     sortBy,
     setSortBy,
     searchQuery,
-    setSearchQuery
+    setSearchQuery,
+    fetchInventory,
+    refreshing
   } = useInventory();
 
   const hasActiveFilters =
@@ -46,27 +48,77 @@ export const FilterBar = () => {
         padding: '12px 14px',
         marginBottom: '16px',
         display: 'flex',
-        flexWrap: 'wrap',
+        flexDirection: 'column',
         gap: '10px',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         backgroundColor: 'var(--bg-surface)'
       }}
     >
+      {/* Row 1: Search Bar & Refresh */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+              pointerEvents: 'none'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Search phones, brand, model, IMEI..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input"
+            style={{
+              paddingLeft: '32px',
+              paddingRight: '8px',
+              height: '38px',
+              fontSize: '0.8125rem',
+              width: '100%',
+              backgroundColor: 'var(--bg-subtle)'
+            }}
+          />
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-secondary btn-icon"
+          onClick={() => fetchInventory(true)}
+          title="Refresh Inventory"
+          style={{ width: '38px', height: '38px', flexShrink: 0 }}
+        >
+          <RotateCw size={15} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Row 2: Filter Selectors & Sorting */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '8px',
+          gap: '10px',
           alignItems: 'center',
-          flex: 1,
-          minWidth: '240px'
+          justifyContent: 'space-between'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-          <Filter size={15} />
-          <span>Filters:</span>
-        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            alignItems: 'center',
+            flex: 1,
+            minWidth: '200px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <Filter size={14} />
+            <span>Filter:</span>
+          </div>
 
         {/* Status Dropdown */}
         <select
@@ -150,5 +202,6 @@ export const FilterBar = () => {
         </select>
       </div>
     </div>
-  );
+  </div>
+);
 };
