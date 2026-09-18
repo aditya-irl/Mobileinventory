@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [configError, setConfigError] = useState(initError || null);
 
   useEffect(() => {
-    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
+    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCNRtTnG2yLjKG37pSjBona9IHsdd5ma2I').trim();
 
     // If no real API key is configured yet, complete loading immediately to show the login screen
     if (!rawApiKey || !auth) {
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
    * Password/PIN is entered by user at runtime and never hard-coded.
    */
   const login = async (enteredPin) => {
-    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
+    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCNRtTnG2yLjKG37pSjBona9IHsdd5ma2I').trim();
 
     if (!rawApiKey) {
       return {

@@ -190,7 +190,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
               textOverflow: 'ellipsis'
             }}
           >
-            {settings.storeName || 'PhoneVault'}
+            {settings.storeName || 'Rathore Mobiles'}
           </span>
         </div>
       </div>

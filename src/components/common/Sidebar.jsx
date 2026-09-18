@@ -89,7 +89,7 @@ export const Sidebar = ({ currentTab, setCurrentTab }) => {
       >
         <img
           src="/logo.svg"
-          alt="PhoneVault Logo"
+          alt="Rathore Mobiles Logo"
           style={{ width: '38px', height: '38px', borderRadius: '10px' }}
         />
         <div>
@@ -103,7 +103,7 @@ export const Sidebar = ({ currentTab, setCurrentTab }) => {
               lineHeight: 1.2
             }}
           >
-            {settings.storeName || 'PhoneVault Pro'}
+            {settings.storeName || 'Rathore Mobiles'}
           </div>
           <div
             style={{

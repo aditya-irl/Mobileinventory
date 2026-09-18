@@ -197,7 +197,7 @@ export const exportPurchasesToCSV = (purchases, filename = 'PhoneVault_Purchases
   document.body.removeChild(link);
 };
 
-export const printDeviceSpecSheet = (item, storeName = 'PhoneVault Pro', currencySymbol = '₹') => {
+export const printDeviceSpecSheet = (item, storeName = 'Rathore Mobiles', currencySymbol = '₹') => {
   const printWindow = window.open('', '_blank', 'width=800,height=900');
   if (!printWindow) return;
 
@@ -299,7 +299,7 @@ export const printDeviceSpecSheet = (item, storeName = 'PhoneVault Pro', currenc
   printWindow.document.close();
 };
 
-export const printBuybackReceipt = (purchase, storeName = 'PhoneVault Pro', currencySymbol = '₹') => {
+export const printBuybackReceipt = (purchase, storeName = 'Rathore Mobiles', currencySymbol = '₹') => {
   const printWindow = window.open('', '_blank', 'width=850,height=950');
   if (!printWindow) return;
 

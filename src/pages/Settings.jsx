@@ -329,7 +329,7 @@ export const Settings = () => {
             </div>
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              This Google Cloud Apps Script API endpoint is permanent and locked for PhoneVault Pro.
+              This Google Cloud Apps Script API endpoint is permanent and locked for Rathore Mobiles.
             </div>
           </div>
 

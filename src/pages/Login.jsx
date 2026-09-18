@@ -179,29 +179,7 @@ export const Login = () => {
           <span>Secure Inventory Access</span>
         </p>
 
-        {/* Missing API Key Notice if not configured in .env */}
-        {!import.meta.env.VITE_FIREBASE_API_KEY && (
-          <div
-            style={{
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'rgba(234, 179, 8, 0.12)',
-              border: '1px solid rgba(234, 179, 8, 0.3)',
-              color: '#d97706',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '16px',
-              textAlign: 'left',
-              lineHeight: 1.4
-            }}
-          >
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-            <span>Add your Firebase Web API Key to <code>.env</code> (<code>VITE_FIREBASE_API_KEY</code>).</span>
-          </div>
-        )}
+
 
         {/* Error Alert Message */}
         {error && (

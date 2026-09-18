@@ -108,7 +108,7 @@ export const MobileDrawer = ({ isOpen, onClose, currentTab, setCurrentTab }) => 
                   lineHeight: 1.2
                 }}
               >
-                {settings.storeName || 'PhoneVault Pro'}
+                {settings.storeName || 'Rathore Mobiles'}
               </div>
               <div
                 style={{
