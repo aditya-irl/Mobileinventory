@@ -9,7 +9,7 @@ import {
   reauthenticateWithCredential,
   updatePassword
 } from 'firebase/auth';
-import { auth, initError, FIREBASE_AUTH_EMAIL } from '../firebase';
+import { auth, initError, FIREBASE_AUTH_EMAIL, firebaseConfig } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -19,10 +19,8 @@ export const AuthProvider = ({ children }) => {
   const [configError, setConfigError] = useState(initError || null);
 
   useEffect(() => {
-    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCNRtTnG2yLjKG37pSjBona9IHsdd5ma2I').trim();
-
-    // If no real API key is configured yet, complete loading immediately to show the login screen
-    if (!rawApiKey || !auth) {
+    // If Firebase Auth is not initialized, complete loading immediately to show the login screen
+    if (!auth) {
       setLoading(false);
       return;
     }
@@ -69,12 +67,10 @@ export const AuthProvider = ({ children }) => {
    * Password/PIN is entered by user at runtime and never hard-coded.
    */
   const login = async (enteredPin) => {
-    const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCNRtTnG2yLjKG37pSjBona9IHsdd5ma2I').trim();
-
-    if (!rawApiKey) {
+    if (!auth || !firebaseConfig?.apiKey) {
       return {
         success: false,
-        error: 'Firebase Web API Key is missing. Please add VITE_FIREBASE_API_KEY to your .env file.'
+        error: 'Firebase Web API Key is missing. Please check your Firebase configuration.'
       };
     }
 
