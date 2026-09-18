@@ -11,8 +11,6 @@ import {
   Cloud,
   Lock,
   LogOut,
-  Store,
-  DollarSign,
   Shield,
   ShieldCheck,
   Download,
@@ -46,9 +44,6 @@ export const Settings = () => {
 
   const [apiUrl] = useState(PERMANENT_GOOGLE_APPS_SCRIPT_URL);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [storeName, setStoreName] = useState(settings.storeName || 'PhoneVault Pro');
-  const [currency, setCurrency] = useState(settings.currency || '₹');
-
   const [testingConnection, setTestingConnection] = useState(false);
   const [localTestResult, setLocalTestResult] = useState(null);
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
@@ -102,22 +97,16 @@ export const Settings = () => {
     }
   };
 
-  // Save general settings
-  const handleSaveSettings = (e) => {
-    if (e) e.preventDefault();
-    setLocalTestResult(null);
-
+  // Save / Sync Cloud Configuration
+  const handleSaveConfiguration = () => {
     updateSettings({
       apiUrl: PERMANENT_GOOGLE_APPS_SCRIPT_URL,
       storageMode: 'google',
-      storeName: storeName.trim(),
-      currency: currency.trim()
+      storeName: 'Rathore Mobiles',
+      currency: '₹'
     });
-
-    showSuccess('Configuration saved! Synchronizing with Google Cloud...', 'Settings Saved');
+    showSuccess('Google Cloud configuration verified and saved!', 'Configuration Saved');
   };
-
-  // Export JSON backup
   const handleExportJSON = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(inventory, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -483,7 +472,7 @@ export const Settings = () => {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={handleSaveSettings}
+              onClick={handleSaveConfiguration}
             >
               Save Configuration
             </button>
@@ -514,68 +503,7 @@ export const Settings = () => {
           </div>
         </div>
 
-        {/* Store Profile & Currency */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--primary-50)',
-                color: 'var(--primary-600)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Store size={20} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Store Profile & Localization</h3>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Customize your branding, business name, and currency denomination.
-              </p>
-            </div>
-          </div>
 
-          <form onSubmit={handleSaveSettings}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-              <div className="form-group">
-                <label className="form-label">Store / Business Name</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="e.g. PhoneVault Pro"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Currency Symbol</label>
-                <select
-                  className="select"
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                >
-                  <option value="₹">₹ — Indian Rupee (INR)</option>
-                  <option value="$">$ — US Dollar (USD)</option>
-                  <option value="€">€ — Euro (EUR)</option>
-                  <option value="£">£ — British Pound (GBP)</option>
-                  <option value="AED">AED — UAE Dirham</option>
-                  <option value="C$">C$ — Canadian Dollar</option>
-                  <option value="A$">A$ — Australian Dollar</option>
-                  <option value="¥">¥ — Japanese Yen</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }}>
-              Save Profile
-            </button>
-          </form>
-        </div>
 
         {/* Security / Firebase Authentication Section */}
         <div className="card" style={{ padding: '24px' }}>

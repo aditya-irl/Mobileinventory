@@ -18,8 +18,6 @@ const SETTINGS_KEY = 'phonevault_settings_v1';
  * Google Apps Script API URL is permanent and locked.
  */
 export const getStorageConfig = () => {
-  let customStoreName = 'PhoneVault Pro';
-  let customCurrency = '₹';
   let customDefaultStatus = 'Available';
   let customLowStock = 3;
   let explicitMode = 'google';
@@ -28,8 +26,6 @@ export const getStorageConfig = () => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
-      if (parsed.storeName) customStoreName = parsed.storeName;
-      if (parsed.currency) customCurrency = parsed.currency;
       if (parsed.defaultStatus) customDefaultStatus = parsed.defaultStatus;
       if (parsed.lowStockThreshold) customLowStock = parsed.lowStockThreshold;
       if (parsed.storageMode === 'local') {
@@ -43,8 +39,8 @@ export const getStorageConfig = () => {
   return {
     mode: explicitMode,
     apiUrl: PERMANENT_GOOGLE_APPS_SCRIPT_URL,
-    storeName: customStoreName,
-    currency: customCurrency,
+    storeName: 'Rathore Mobiles',
+    currency: '₹',
     defaultStatus: customDefaultStatus,
     lowStockThreshold: customLowStock
   };
