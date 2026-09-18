@@ -7,45 +7,27 @@ import { formatCurrency, formatDate, getSafeImageUrl } from '../utils/formatters
 import {
   Smartphone,
   CheckCircle2,
-  Clock,
   ShoppingBag,
   Wrench,
-  DollarSign,
   TrendingUp,
   Wallet,
   PlusCircle,
-  ArrowRight,
-  Sparkles,
-  BarChart2
+  ArrowRight
 } from 'lucide-react';
 
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
   ArcElement,
-  Title,
   Tooltip,
-  Legend,
-  Filler
+  Legend
 } from 'chart.js';
-import { Doughnut, Bar, Line } from 'react-chartjs-2';
+import { Doughnut } from 'react-chartjs-2';
 
 // Register Chart.js components
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
   ArcElement,
-  Title,
   Tooltip,
-  Legend,
-  Filler
+  Legend
 );
 
 export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
@@ -73,86 +55,20 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
     };
   }, [statistics.brandCounts]);
 
-  // Status Distribution Chart Data
+  // Status Distribution Chart Data (Available, Sold, Under Repair)
   const statusChartData = useMemo(() => {
     return {
-      labels: ['Available', 'Reserved', 'Sold', 'Under Repair'],
+      labels: ['Available', 'Sold', 'Under Repair'],
       datasets: [
         {
           data: [
             statistics.available,
-            statistics.reserved,
             statistics.sold,
             statistics.underRepair
           ],
-          backgroundColor: ['#10B981', '#F59E0B', '#3B82F6', '#EC4899'],
+          backgroundColor: ['#10B981', '#3B82F6', '#EC4899'],
           borderWidth: 0,
           hoverOffset: 4
-        }
-      ]
-    };
-  }, [statistics]);
-
-  // Valuation Comparison Bar Chart Data
-  const valuationBarData = useMemo(() => {
-    return {
-      labels: ['Purchase Value', 'Selling Value', 'Potential Profit', 'Realized Profit'],
-      datasets: [
-        {
-          label: `Amount (${settings.currency})`,
-          data: [
-            statistics.totalPurchaseValue,
-            statistics.totalSellingValue,
-            statistics.potentialProfit,
-            statistics.realizedProfit
-          ],
-          backgroundColor: [
-            '#94A3B8',
-            '#6366F1',
-            '#F59E0B',
-            '#10B981'
-          ],
-          borderRadius: 8
-        }
-      ]
-    };
-  }, [statistics, settings.currency]);
-
-  // Monthly Sales & Profit Trend (calculated from sales records)
-  const salesTrendData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
-    const displayMonths = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1);
-
-    // Mock realistic trajectory combined with actual sales
-    const salesValues = displayMonths.map((_, idx) => {
-      const base = idx === displayMonths.length - 1 ? statistics.sold * 65000 : (idx + 1) * 45000;
-      return base || 35000;
-    });
-
-    const profitValues = displayMonths.map((_, idx) => {
-      const base = idx === displayMonths.length - 1 ? statistics.realizedProfit : (idx + 1) * 8500;
-      return base || 6000;
-    });
-
-    return {
-      labels: displayMonths,
-      datasets: [
-        {
-          label: 'Sales Revenue',
-          data: salesValues,
-          borderColor: '#6366F1',
-          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-          fill: true,
-          tension: 0.4
-        },
-        {
-          label: 'Realized Profit',
-          data: profitValues,
-          borderColor: '#10B981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          fill: true,
-          tension: 0.4
         }
       ]
     };
@@ -180,7 +96,7 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
             Inventory Dashboard
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>
-            Real-time stock valuation, sales performance, and hardware telemetry.
+            Real-time stock monitoring, sales tracking, and hardware telemetry.
           </p>
         </div>
 
@@ -195,8 +111,8 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
         </div>
       </div>
 
-      {/* 8 Distinct Statistics Cards */}
-      <div className="grid-stats grid-stats-8" style={{ marginBottom: '24px' }}>
+      {/* 6 Core Statistics Cards */}
+      <div className="grid-stats grid-stats-6" style={{ marginBottom: '24px' }}>
         <StatCard
           title="Total Inventory"
           value={`${statistics.totalStock} Phones`}
@@ -211,14 +127,6 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
           subtitle="Ready for immediate sale"
           icon={CheckCircle2}
           color="emerald"
-          onClick={() => setCurrentTab('inventory')}
-        />
-        <StatCard
-          title="Reserved Units"
-          value={`${statistics.reserved} Phones`}
-          subtitle="Token deposit held"
-          icon={Clock}
-          color="amber"
           onClick={() => setCurrentTab('inventory')}
         />
         <StatCard
@@ -251,21 +159,13 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
           icon={TrendingUp}
           color="amber"
         />
-        <StatCard
-          title="Realized Profit"
-          value={formatCurrency(statistics.realizedProfit, settings.currency)}
-          subtitle="Total profit earned from sales"
-          icon={DollarSign}
-          color="emerald"
-          onClick={() => setCurrentTab('sold')}
-        />
       </div>
 
-      {/* Interactive Charts Section */}
+      {/* Interactive Charts Section (2 visual distribution cards) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
           gap: '16px',
           marginBottom: '24px'
         }}
@@ -304,64 +204,6 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
                 maintainAspectRatio: false,
                 plugins: {
                   legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Purchase vs Selling Value Bar Chart */}
-        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Valuation & Margin Comparison</h3>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Financials</span>
-          </div>
-          <div style={{ height: '200px' }}>
-            <Bar
-              data={valuationBarData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      font: { size: 9 },
-                      callback: (val) => `${settings.currency}${(val / 1000).toFixed(0)}k`
-                    }
-                  },
-                  x: { ticks: { font: { size: 9 } } }
-                }
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Monthly Sales & Profit Trend */}
-        <div className="card" style={{ padding: '16px', minWidth: 0, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Monthly Revenue Trends</h3>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Last 6 Months</span>
-          </div>
-          <div style={{ height: '200px' }}>
-            <Line
-              data={salesTrendData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      font: { size: 9 },
-                      callback: (val) => `${settings.currency}${(val / 1000).toFixed(0)}k`
-                    }
-                  },
-                  x: { ticks: { font: { size: 9 } } }
                 }
               }}
             />

@@ -185,7 +185,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
               letterSpacing: '-0.02em',
               color: 'var(--text-primary)',
               whiteSpace: 'nowrap',
-              maxWidth: '120px',
+              maxWidth: 'clamp(60px, 18vw, 120px)',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}

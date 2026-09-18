@@ -104,7 +104,7 @@ export const Reports = () => {
           </button>
           <button
             className="btn btn-primary"
-            onClick={() => exportInventoryToCSV(inventory, 'PhoneVault_Full_Report.csv')}
+            onClick={() => exportInventoryToCSV(inventory, 'Rathore_Mobiles_Full_Report.csv')}
             style={{ minHeight: '38px' }}
           >
             <Download size={15} />

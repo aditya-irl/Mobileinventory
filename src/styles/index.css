@@ -453,9 +453,15 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-@media (min-width: 1280px) {
-  .grid-stats-8 {
-    grid-template-columns: repeat(4, 1fr);
+@media (min-width: 768px) {
+  .grid-stats-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .grid-stats-6 {
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 
