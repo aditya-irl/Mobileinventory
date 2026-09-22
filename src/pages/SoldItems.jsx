@@ -415,3 +415,5 @@ export const SoldItems = () => {
     </div>
   );
 };
+
+export default SoldItems;

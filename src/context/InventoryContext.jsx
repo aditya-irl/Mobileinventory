@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { api, getApiUrl, getStorageConfig, DEFAULT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
 import { useToast } from './ToastContext';
-import confetti from 'canvas-confetti';
+
+// Dynamic confetti trigger to avoid bundling canvas-confetti into the critical initial chunk
+const triggerCelebration = async (options) => {
+  try {
+    const confettiModule = await import('canvas-confetti');
+    const confetti = confettiModule.default || confettiModule;
+    confetti(options);
+  } catch (e) {
+    // Non-critical visual effect fallback
+  }
+};
 
 const InventoryContext = createContext();
 
@@ -215,9 +225,7 @@ export const InventoryProvider = ({ children }) => {
       if (result.success) {
         await fetchAllData(true);
         showSuccess(`Device ${result.inventory_id || ''} added successfully!`, 'Device Added');
-        try {
-          confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
-        } catch (e) {}
+        triggerCelebration({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
         return { success: true, data: result.data };
       }
       showError(result.error || 'Failed to add device.');
@@ -238,9 +246,7 @@ export const InventoryProvider = ({ children }) => {
           `Buyback completed! Purchase ID: ${result.purchase_id} (Inventory ID: ${result.inventory_id})`,
           'Buyback Recorded'
         );
-        try {
-          confetti({ particleCount: 80, spread: 75, origin: { y: 0.65 } });
-        } catch (e) {}
+        triggerCelebration({ particleCount: 80, spread: 75, origin: { y: 0.65 } });
         return { success: true, purchase_id: result.purchase_id, inventory_id: result.inventory_id, data: result.data };
       }
       showError(result.error || 'Failed to record buyback transaction.');
@@ -295,6 +301,23 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
+  // Remove Customer Record / Purchase (Frontend & Local Only)
+  const deletePurchase = async (purchaseId) => {
+    try {
+      const result = await api.deletePurchase(purchaseId);
+      if (result.success) {
+        setPurchases(prev => prev.filter(p => p.purchase_id !== purchaseId));
+        showSuccess(`Customer record ${purchaseId} removed from app.`, 'Record Removed');
+        return { success: true };
+      }
+      showError(result.error || 'Failed to remove customer record.');
+      return { success: false };
+    } catch (err) {
+      showError(err.message || 'Unable to remove customer record.');
+      return { success: false };
+    }
+  };
+
   // Update Item
   const updateInventoryItem = async (itemData) => {
     try {
@@ -319,9 +342,7 @@ export const InventoryProvider = ({ children }) => {
       if (result.success) {
         await fetchAllData(true);
         showSuccess(`Phone ${saleData.inventory_id || ''} marked as sold successfully`, 'Sale Recorded');
-        try {
-          confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-        } catch (e) {}
+        triggerCelebration({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
         return { success: true };
       }
       showError(result.error || 'Failed to record sale.');
@@ -534,6 +555,7 @@ export const InventoryProvider = ({ children }) => {
         uploadDevicePhoto,
         traceIMEI,
         archivePurchase,
+        deletePurchase,
         updateInventoryItem,
         markAsSold,
         deleteInventoryItem,

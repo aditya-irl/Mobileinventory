@@ -325,3 +325,5 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
     </div>
   );
 };
+
+export default Dashboard;

@@ -888,3 +888,5 @@ export const AddInventory = ({ setCurrentTab }) => {
     </div>
   );
 };
+
+export default AddInventory;

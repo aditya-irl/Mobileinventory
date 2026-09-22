@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Header } from '../components/common/Header';
 import { Sidebar } from '../components/common/Sidebar';
 import { BottomNav } from '../components/common/BottomNav';
 import { MobileDrawer } from '../components/common/MobileDrawer';
-import { Dashboard } from '../pages/Dashboard';
-import { Inventory } from '../pages/Inventory';
-import { AddInventory } from '../pages/AddInventory';
-import { Purchases } from '../pages/Purchases';
-import { SoldItems } from '../pages/SoldItems';
-import { Reports } from '../pages/Reports';
-import { Settings } from '../pages/Settings';
+import { PageLoader } from '../components/common/PageLoader';
+
+// Code-split pages on demand using dynamic imports & lazy loading
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const Inventory = lazy(() => import('../pages/Inventory'));
+const AddInventory = lazy(() => import('../pages/AddInventory'));
+const Purchases = lazy(() => import('../pages/Purchases'));
+const SoldItems = lazy(() => import('../pages/SoldItems'));
+const Reports = lazy(() => import('../pages/Reports'));
+const Settings = lazy(() => import('../pages/Settings'));
 
 export const AppLayout = () => {
   const [currentTab, setCurrentTab] = useState('dashboard');
@@ -40,40 +43,42 @@ export const AppLayout = () => {
         />
 
         <main style={{ flex: 1, minHeight: 0 }}>
-          {currentTab === 'dashboard' && (
-            <Dashboard
-              setCurrentTab={setCurrentTab}
-              onSelectDevice={handleSelectDeviceFromDash}
-            />
-          )}
+          <Suspense fallback={<PageLoader />}>
+            {currentTab === 'dashboard' && (
+              <Dashboard
+                setCurrentTab={setCurrentTab}
+                onSelectDevice={handleSelectDeviceFromDash}
+              />
+            )}
 
-          {currentTab === 'inventory' && (
-            <Inventory
-              setCurrentTab={setCurrentTab}
-              selectedDeviceFromDash={selectedDeviceFromDash}
-              onClearSelectedDevice={() => setSelectedDeviceFromDash(null)}
-            />
-          )}
+            {currentTab === 'inventory' && (
+              <Inventory
+                setCurrentTab={setCurrentTab}
+                selectedDeviceFromDash={selectedDeviceFromDash}
+                onClearSelectedDevice={() => setSelectedDeviceFromDash(null)}
+              />
+            )}
 
-          {currentTab === 'purchases' && (
-            <Purchases />
-          )}
+            {currentTab === 'purchases' && (
+              <Purchases />
+            )}
 
-          {currentTab === 'add' && (
-            <AddInventory setCurrentTab={setCurrentTab} />
-          )}
+            {currentTab === 'add' && (
+              <AddInventory setCurrentTab={setCurrentTab} />
+            )}
 
-          {currentTab === 'sold' && (
-            <SoldItems />
-          )}
+            {currentTab === 'sold' && (
+              <SoldItems />
+            )}
 
-          {currentTab === 'reports' && (
-            <Reports />
-          )}
+            {currentTab === 'reports' && (
+              <Reports />
+            )}
 
-          {currentTab === 'settings' && (
-            <Settings />
-          )}
+            {currentTab === 'settings' && (
+              <Settings />
+            )}
+          </Suspense>
         </main>
       </div>
 
@@ -94,3 +99,5 @@ export const AppLayout = () => {
     </div>
   );
 };
+
+export default AppLayout;

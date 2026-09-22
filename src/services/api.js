@@ -75,7 +75,17 @@ export const saveLocalInventory = (items) => {
 export const getLocalPurchases = () => {
   try {
     const data = localStorage.getItem(PURCHASES_STORAGE_KEY);
-    if (data) return JSON.parse(data);
+    if (data) {
+      const parsed = JSON.parse(data);
+      let removedIds = [];
+      try {
+        removedIds = JSON.parse(localStorage.getItem('phonevault_removed_purchases_v1') || '[]');
+      } catch (e) {}
+      if (removedIds.length > 0 && Array.isArray(parsed)) {
+        return parsed.filter(p => !removedIds.includes(p.purchase_id));
+      }
+      return parsed;
+    }
   } catch (e) {
     console.error('Error reading localStorage purchases', e);
   }
@@ -688,8 +698,15 @@ export const api = {
       });
       const json = await res.json();
       if (json && json.success && Array.isArray(json.data)) {
-        saveLocalPurchases(json.data);
-        return { ...json, mode: 'google' };
+        let removedIds = [];
+        try {
+          removedIds = JSON.parse(localStorage.getItem('phonevault_removed_purchases_v1') || '[]');
+        } catch (e) {}
+        const filtered = removedIds.length > 0
+          ? json.data.filter(p => !removedIds.includes(p.purchase_id))
+          : json.data;
+        saveLocalPurchases(filtered);
+        return { ...json, data: filtered, total: filtered.length, mode: 'google' };
       }
       // If endpoint not on remote yet, return local purchases
       const local = getLocalPurchases();
@@ -1011,9 +1028,43 @@ export const api = {
   },
 
   /**
+   * Remove Customer / Purchase Record (Frontend & Local Cache Only)
+   * Does NOT send any backend request to Google Apps Script.
+   * Removes from local storage and tracks removed ID so it does not reappear.
+   */
+  deletePurchase: async (purchaseId) => {
+    if (!purchaseId) {
+      throw new Error('purchase_id is required.');
+    }
+
+    // 1. Remove from local storage purchases cache
+    const current = getLocalPurchases();
+    const filtered = current.filter(p => p.purchase_id !== purchaseId);
+    saveLocalPurchases(filtered);
+
+    // 2. Track removed ID in localStorage to prevent reappearing from backend sync
+    try {
+      const removedKey = 'phonevault_removed_purchases_v1';
+      const removedIds = JSON.parse(localStorage.getItem(removedKey) || '[]');
+      if (!removedIds.includes(purchaseId)) {
+        removedIds.push(purchaseId);
+        localStorage.setItem(removedKey, JSON.stringify(removedIds));
+      }
+    } catch (e) {
+      console.warn('Error saving removed purchase id:', e);
+    }
+
+    return {
+      success: true,
+      message: `Customer record ${purchaseId} removed from app.`
+    };
+  },
+
+  /**
    * Reset sample data
    */
   resetSampleData: () => {
+    localStorage.removeItem('phonevault_removed_purchases_v1');
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_INVENTORY));
     localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_PURCHASES));
     return {

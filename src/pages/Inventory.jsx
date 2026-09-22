@@ -236,3 +236,5 @@ export const Inventory = ({ setCurrentTab, selectedDeviceFromDash, onClearSelect
     </div>
   );
 };
+
+export default Inventory;

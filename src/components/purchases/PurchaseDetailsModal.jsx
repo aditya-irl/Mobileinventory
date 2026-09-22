@@ -17,11 +17,15 @@ import {
   Calendar,
   Archive,
   Edit3,
+  Trash2,
   Image as ImageIcon
 } from 'lucide-react';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
-export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onEdit }) => {
-  const { inventory, settings } = useInventory();
+export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onEdit, onDelete }) => {
+  const { inventory, settings, deletePurchase } = useInventory();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [viewerState, setViewerState] = useState({
     isOpen: false,
@@ -362,15 +366,28 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
         </div>
 
         {/* Modal Footer */}
-        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          {purchase.status !== 'Archived' ? (
+        <div className="modal-footer" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {purchase.status !== 'Archived' && (
+              <button
+                type="button"
+                className="btn btn-subtle btn-sm"
+                onClick={() => onArchive(purchase.purchase_id)}
+              >
+                <Archive size={14} /> Archive Record
+              </button>
+            )}
+
             <button
+              type="button"
               className="btn btn-subtle btn-sm"
-              onClick={() => onArchive(purchase.purchase_id)}
+              onClick={() => setShowDeleteConfirm(true)}
+              style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '5px' }}
+              title="Remove Customer Record from App"
             >
-              <Archive size={14} /> Archive Record
+              <Trash2 size={14} /> Remove from App
             </button>
-          ) : <div />}
+          </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
             {onEdit && (
@@ -398,6 +415,35 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
         initialIndex={viewerState.initialIndex}
         category={viewerState.category}
         onClose={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => !isDeleting && setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          if (isDeleting) return;
+          setIsDeleting(true);
+          try {
+            if (onDelete) {
+              await onDelete(purchase.purchase_id);
+            } else if (deletePurchase) {
+              await deletePurchase(purchase.purchase_id);
+            }
+            setShowDeleteConfirm(false);
+            onClose();
+          } catch (err) {
+            console.error(err);
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        title="Remove Customer Record"
+        message="Remove this customer record from the app? Note: This removes the record from the app's local/visible data. Google Sheets and Google Drive data are not automatically deleted."
+        confirmText="Remove"
+        cancelText="Cancel"
+        danger={true}
+        loading={isDeleting}
       />
     </div>
   );

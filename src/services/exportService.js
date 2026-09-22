@@ -2,11 +2,49 @@
  * Export services for CSV, Excel-compatible sheets, and Printable device spec sheets & Buyback Invoices
  */
 
-export const exportInventoryToCSV = (items, filename = 'PhoneVault_Inventory_Export.csv') => {
+const getFormattedDate = () => new Date().toISOString().split('T')[0];
+
+/**
+ * Robust CSV string escaping adhering to RFC 4180
+ * Double quotes are escaped as "", and values are wrapped in quotes to safely handle
+ * commas, quotes, and newline characters.
+ */
+export const escapeCSV = (val) => {
+  if (val === null || val === undefined) return '""';
+  const str = String(val).replace(/"/g, '""');
+  return `"${str}"`;
+};
+
+/**
+ * Universal browser file downloader supporting desktop and mobile (iOS Safari & Android Chrome)
+ * Uses native Blob + createObjectURL with UTF-8 BOM encoding.
+ */
+export const downloadBlobFile = (content, filename, mimeType = 'text/csv;charset=utf-8;') => {
+  const isCSV = mimeType.includes('csv');
+  const bom = isCSV ? '\uFEFF' : '';
+  const blob = new Blob([bom + content], { type: mimeType });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 400);
+};
+
+export const exportInventoryToCSV = (items, filename = null) => {
   if (!items || !items.length) {
     alert('No inventory items to export.');
     return;
   }
+
+  const exportFilename = filename || `inventory-${getFormattedDate()}.csv`;
 
   const headers = [
     'Inventory ID',
@@ -35,12 +73,6 @@ export const exportInventoryToCSV = (items, filename = 'PhoneVault_Inventory_Exp
     'Created At'
   ];
 
-  const escapeCSV = (val) => {
-    if (val === null || val === undefined) return '""';
-    const str = String(val).replace(/"/g, '""');
-    return `"${str}"`;
-  };
-
   const rows = items.map(item => [
     escapeCSV(item.inventory_id),
     escapeCSV(item.brand),
@@ -68,21 +100,17 @@ export const exportInventoryToCSV = (items, filename = 'PhoneVault_Inventory_Exp
     escapeCSV(item.created_at)
   ].join(','));
 
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  downloadBlobFile(csvContent, exportFilename, 'text/csv;charset=utf-8;');
 };
 
-export const exportSalesReportToCSV = (soldItems, filename = 'PhoneVault_Sales_Report.csv') => {
+export const exportSalesReportToCSV = (soldItems, filename = null) => {
   if (!soldItems || !soldItems.length) {
     alert('No sold items to export.');
     return;
   }
+
+  const exportFilename = filename || `sold-items-${getFormattedDate()}.csv`;
 
   const headers = [
     'Inventory ID',
@@ -97,12 +125,6 @@ export const exportSalesReportToCSV = (soldItems, filename = 'PhoneVault_Sales_R
     'Sold Date',
     'Supplier'
   ];
-
-  const escapeCSV = (val) => {
-    if (val === null || val === undefined) return '""';
-    const str = String(val).replace(/"/g, '""');
-    return `"${str}"`;
-  };
 
   const rows = soldItems.map(item => {
     const margin = item.purchase_price ? (((item.selling_price - item.purchase_price) / item.purchase_price) * 100).toFixed(1) + '%' : '0%';
@@ -121,21 +143,17 @@ export const exportSalesReportToCSV = (soldItems, filename = 'PhoneVault_Sales_R
     ].join(',');
   });
 
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  downloadBlobFile(csvContent, exportFilename, 'text/csv;charset=utf-8;');
 };
 
-export const exportPurchasesToCSV = (purchases, filename = 'PhoneVault_Purchases_Ledger.csv') => {
+export const exportPurchasesToCSV = (purchases, filename = null) => {
   if (!purchases || !purchases.length) {
     alert('No purchase records to export.');
     return;
   }
+
+  const exportFilename = filename || `purchases-${getFormattedDate()}.csv`;
 
   const headers = [
     'Purchase ID',
@@ -159,12 +177,6 @@ export const exportPurchasesToCSV = (purchases, filename = 'PhoneVault_Purchases
     'Status'
   ];
 
-  const escapeCSV = (val) => {
-    if (val === null || val === undefined) return '""';
-    const str = String(val).replace(/"/g, '""');
-    return `"${str}"`;
-  };
-
   const rows = purchases.map(p => [
     escapeCSV(p.purchase_id),
     escapeCSV(p.inventory_id),
@@ -187,14 +199,14 @@ export const exportPurchasesToCSV = (purchases, filename = 'PhoneVault_Purchases
     escapeCSV(p.status)
   ].join(','));
 
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows].join('\n');
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const csvContent = [headers.join(','), ...rows].join('\r\n');
+  downloadBlobFile(csvContent, exportFilename, 'text/csv;charset=utf-8;');
+};
+
+export const exportDataToJSON = (data, filename = null) => {
+  const exportFilename = filename || `phonevault_backup_${getFormattedDate()}.json`;
+  const jsonStr = JSON.stringify(data, null, 2);
+  downloadBlobFile(jsonStr, exportFilename, 'application/json;charset=utf-8;');
 };
 
 export const printDeviceSpecSheet = (item, storeName = 'Rathore Mobiles', currencySymbol = '₹') => {

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { PERMANENT_GOOGLE_APPS_SCRIPT_URL, DEFAULT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
+import { PERMANENT_GOOGLE_APPS_SCRIPT_URL } from '../services/api';
 import { ChangePinModal } from '../components/settings/ChangePinModal';
+import { exportInventoryToCSV } from '../services/exportService';
+import { ExportMenu } from '../components/common/ExportMenu';
 
 import {
   Settings as SettingsIcon,
@@ -116,6 +118,15 @@ export const Settings = () => {
     downloadAnchor.click();
     downloadAnchor.remove();
     showSuccess('Backup exported successfully.');
+  };
+
+  const handleExportCSV = () => {
+    if (!inventory || !inventory.length) {
+      showError('No inventory items to export.');
+      return;
+    }
+    exportInventoryToCSV(inventory);
+    showSuccess('Inventory CSV exported successfully.');
   };
 
   // Import JSON backup
@@ -642,15 +653,13 @@ export const Settings = () => {
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Data Backup & Reset</h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Export full JSON backups or restore default demo phones for testing.
+                Export data in JSON or CSV format, import backups, or restore defaults.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary" onClick={handleExportJSON}>
-              <Download size={15} /> Export JSON Backup
-            </button>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <ExportMenu onExportJSON={handleExportJSON} onExportCSV={handleExportCSV} />
 
             <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
               <Upload size={15} /> Import JSON Backup
@@ -689,3 +698,5 @@ export const Settings = () => {
     </div>
   );
 };
+
+export default Settings;

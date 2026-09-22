@@ -20,16 +20,20 @@ import {
   Lock,
   Clock,
   Sparkles,
-  Edit3
+  Edit3,
+  Trash2
 } from 'lucide-react';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 export const Purchases = () => {
-  const { purchases, archivePurchase, settings } = useInventory();
+  const { purchases, archivePurchase, deletePurchase, settings } = useInventory();
 
   const [activeTab, setActiveTab] = useState('ledger'); // 'wizard' | 'ledger' | 'trace'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [editingPurchase, setEditingPurchase] = useState(null);
+  const [purchaseToRemove, setPurchaseToRemove] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   // Filtered Purchases
   const filteredPurchases = useMemo(() => {
@@ -310,6 +314,19 @@ export const Purchases = () => {
                             >
                               <Eye size={14} />
                             </button>
+                            <button
+                              className="btn btn-subtle btn-icon btn-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPurchaseToRemove(purchase);
+                              }}
+                              title="Remove Customer Record from App"
+                              style={{ color: 'var(--text-muted)' }}
+                              onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -424,6 +441,18 @@ export const Purchases = () => {
                         >
                           <Eye size={13} /> View KYC
                         </button>
+                        <button
+                          type="button"
+                          className="btn btn-subtle btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPurchaseToRemove(purchase);
+                          }}
+                          style={{ height: '34px', fontSize: '0.75rem', padding: '0 8px', color: '#ef4444' }}
+                          title="Remove Customer Record from App"
+                        >
+                          <Trash2 size={13} /> Remove
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -450,6 +479,10 @@ export const Purchases = () => {
           await archivePurchase(purId);
           setSelectedPurchase(null);
         }}
+        onDelete={async (purId) => {
+          await deletePurchase(purId);
+          setSelectedPurchase(null);
+        }}
         onEdit={(pur) => setEditingPurchase(pur)}
       />
 
@@ -459,6 +492,33 @@ export const Purchases = () => {
         isOpen={Boolean(editingPurchase)}
         onClose={() => setEditingPurchase(null)}
       />
+
+      {/* Remove Customer Record Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(purchaseToRemove)}
+        onClose={() => !isRemoving && setPurchaseToRemove(null)}
+        onConfirm={async () => {
+          if (!purchaseToRemove || isRemoving) return;
+          setIsRemoving(true);
+          try {
+            await deletePurchase(purchaseToRemove.purchase_id);
+            setPurchaseToRemove(null);
+            if (selectedPurchase?.purchase_id === purchaseToRemove.purchase_id) {
+              setSelectedPurchase(null);
+            }
+          } finally {
+            setIsRemoving(false);
+          }
+        }}
+        title="Remove Customer Record"
+        message="Remove this customer record from the app? Note: This removes the record from the app's local/visible data. Google Sheets and Google Drive data are not automatically deleted."
+        confirmText="Remove"
+        cancelText="Cancel"
+        danger={true}
+        loading={isRemoving}
+      />
     </div>
   );
 };
+
+export default Purchases;
