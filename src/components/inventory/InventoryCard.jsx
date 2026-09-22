@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '../common/Badge';
 import { formatCurrency, maskIMEI, calculateProfitMargin, getSafeImageUrl } from '../../utils/formatters';
 import { useInventory } from '../../context/InventoryContext';
-import { Smartphone, ChevronRight, DollarSign, BatteryCharging } from 'lucide-react';
+import { Smartphone, ChevronRight, DollarSign, BatteryCharging, Eye, Edit3 } from 'lucide-react';
 
 export const InventoryCard = ({
   item,
@@ -140,24 +140,38 @@ export const InventoryCard = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-          {item.status !== 'Sold' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => onViewDetails(item)}
+            style={{ padding: '6px 10px', minHeight: '36px', fontSize: '0.75rem', fontWeight: 600 }}
+            title="View Details"
+          >
+            <Eye size={13} /> View
+          </button>
+          {onEdit && (
             <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => onEdit(item)}
+              style={{ padding: '6px 10px', minHeight: '36px', fontSize: '0.75rem', fontWeight: 600 }}
+              title="Edit Device"
+            >
+              <Edit3 size={13} /> Edit
+            </button>
+          )}
+          {item.status !== 'Sold' && onMarkSold && (
+            <button
+              type="button"
               className="btn btn-primary btn-sm"
               onClick={() => onMarkSold(item)}
-              style={{ padding: '6px 10px', height: '34px', fontSize: '0.75rem', fontWeight: 700 }}
+              style={{ padding: '6px 10px', minHeight: '36px', fontSize: '0.75rem', fontWeight: 700 }}
+              title="Record Sale"
             >
               <DollarSign size={13} /> Sell
             </button>
           )}
-          <button
-            className="btn btn-subtle btn-sm btn-icon"
-            onClick={() => onViewDetails(item)}
-            style={{ width: '34px', height: '34px' }}
-            title="View Details"
-          >
-            <ChevronRight size={16} />
-          </button>
         </div>
       </div>
     </div>

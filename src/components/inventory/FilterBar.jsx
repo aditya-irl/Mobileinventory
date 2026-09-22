@@ -26,12 +26,16 @@ export const FilterBar = () => {
     refreshing
   } = useInventory();
 
-  const hasActiveFilters =
-    selectedBrand !== 'All' ||
-    selectedStatus !== 'All' ||
-    selectedCondition !== 'All' ||
-    selectedStorage !== 'All' ||
-    searchQuery.trim() !== '';
+  const [showMobileFilters, setShowMobileFilters] = React.useState(false);
+
+  const activeFilterCount = [
+    selectedBrand !== 'All',
+    selectedStatus !== 'All',
+    selectedCondition !== 'All',
+    selectedStorage !== 'All'
+  ].filter(Boolean).length;
+
+  const hasActiveFilters = activeFilterCount > 0 || searchQuery.trim() !== '';
 
   const clearAllFilters = () => {
     setSelectedBrand('All');
@@ -53,7 +57,7 @@ export const FilterBar = () => {
         backgroundColor: 'var(--bg-surface)'
       }}
     >
-      {/* Row 1: Search Bar & Refresh */}
+      {/* Row 1: Search Bar, Mobile Filter Toggle & Refresh */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
           <Search
@@ -84,6 +88,33 @@ export const FilterBar = () => {
           />
         </div>
 
+        {/* Mobile Toggle Filters Button */}
+        <button
+          type="button"
+          className={`btn ${showMobileFilters ? 'btn-primary' : 'btn-secondary'} hide-desktop`}
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          style={{ height: '38px', padding: '0 10px', fontSize: '0.78rem', flexShrink: 0, gap: '4px' }}
+          title="Toggle Filters"
+          aria-expanded={showMobileFilters}
+        >
+          <Filter size={14} />
+          <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span
+              style={{
+                backgroundColor: showMobileFilters ? 'rgba(255,255,255,0.25)' : 'var(--primary-600)',
+                color: '#fff',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: '10px'
+              }}
+            >
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
         <button
           type="button"
           className="btn btn-secondary btn-icon"
@@ -97,6 +128,7 @@ export const FilterBar = () => {
 
       {/* Row 2: Filter Selectors & Sorting */}
       <div
+        className={`filterbar-selectors ${showMobileFilters ? 'filterbar-mobile-open' : ''}`}
         style={{
           display: 'flex',
           flexWrap: 'wrap',

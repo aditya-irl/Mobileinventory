@@ -165,7 +165,7 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           gap: '16px',
           marginBottom: '24px'
         }}
@@ -176,14 +176,17 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Stock by Brand</h3>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Distribution</span>
           </div>
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut
               data={brandChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                  legend: {
+                    position: window.innerWidth < 768 ? 'bottom' : 'right',
+                    labels: { boxWidth: 10, font: { size: 10 } }
+                  }
                 }
               }}
             />
@@ -196,14 +199,17 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Stock by Status</h3>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Lifecycle</span>
           </div>
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut
               data={statusChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+                  legend: {
+                    position: window.innerWidth < 768 ? 'bottom' : 'right',
+                    labels: { boxWidth: 10, font: { size: 10 } }
+                  }
                 }
               }}
             />

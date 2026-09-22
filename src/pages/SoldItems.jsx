@@ -381,20 +381,22 @@ export const SoldItems = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Cost: {formatCurrency(item.purchase_price, settings.currency)}
-                    </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        Cost: {formatCurrency(item.purchase_price, settings.currency)}
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
+                      className="btn btn-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedDevice(item);
                       }}
-                      style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px' }}
+                      style={{ width: '100%', minHeight: '40px', fontSize: '0.8125rem', fontWeight: 600, justifyContent: 'center' }}
                     >
-                      <Eye size={13} /> View Sale Details
+                      <Eye size={14} /> View Sale Details
                     </button>
                   </div>
                 </div>

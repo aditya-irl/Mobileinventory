@@ -62,19 +62,10 @@ export const Purchases = () => {
   return (
     <div className="page-wrapper animate-fade-in">
       {/* Top Header */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '20px'
-        }}
-      >
+      <div className="page-header-responsive">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800 }}>Used Phone Buyback & Seller Verification</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Used Phone Buyback & Seller Verification</h1>
             <span
               style={{
                 fontSize: '0.72rem',
@@ -83,7 +74,7 @@ export const Purchases = () => {
                 borderRadius: 'var(--radius-full)',
                 backgroundColor: 'var(--status-available-bg)',
                 color: 'var(--status-available-text)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px'
               }}
@@ -91,15 +82,16 @@ export const Purchases = () => {
               <Lock size={11} /> Isolated KYC
             </span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px' }}>
             Record customer buybacks, verify government identity, and maintain audit-compliant IMEI records.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="page-header-actions">
           <button
             className="btn btn-primary"
             onClick={() => setActiveTab('wizard')}
+            style={{ width: '100%', maxWidth: 'max-content' }}
           >
             <PlusCircle size={16} />
             New Buyback
@@ -414,11 +406,28 @@ export const Purchases = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
-                        {purchase.purchase_id}
-                      </span>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                          {purchase.purchase_id}
+                        </span>
+                      </div>
+
+                      {/* Primary Action Button */}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPurchase(purchase);
+                        }}
+                        style={{ width: '100%', minHeight: '42px', fontSize: '0.85rem', fontWeight: 600, justifyContent: 'center' }}
+                      >
+                        <Eye size={15} /> View KYC & Full Details
+                      </button>
+
+                      {/* Secondary / Destructive Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px' }}>
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
@@ -426,20 +435,9 @@ export const Purchases = () => {
                             e.stopPropagation();
                             setEditingPurchase(purchase);
                           }}
-                          style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px' }}
+                          style={{ minHeight: '36px', fontSize: '0.75rem', padding: '0 12px' }}
                         >
-                          <Edit3 size={13} /> Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPurchase(purchase);
-                          }}
-                          style={{ height: '34px', fontSize: '0.75rem', padding: '0 10px' }}
-                        >
-                          <Eye size={13} /> View KYC
+                          <Edit3 size={13} /> Edit Record
                         </button>
                         <button
                           type="button"
@@ -448,7 +446,7 @@ export const Purchases = () => {
                             e.stopPropagation();
                             setPurchaseToRemove(purchase);
                           }}
-                          style={{ height: '34px', fontSize: '0.75rem', padding: '0 8px', color: '#ef4444' }}
+                          style={{ minHeight: '36px', fontSize: '0.75rem', padding: '0 10px', color: '#ef4444' }}
                           title="Remove Customer Record from App"
                         >
                           <Trash2 size={13} /> Remove

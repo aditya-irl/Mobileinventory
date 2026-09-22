@@ -366,30 +366,47 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
         </div>
 
         {/* Modal Footer */}
-        <div className="modal-footer" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {purchase.status !== 'Archived' && (
-              <button
-                type="button"
-                className="btn btn-subtle btn-sm"
-                onClick={() => onArchive(purchase.purchase_id)}
-              >
-                <Archive size={14} /> Archive Record
-              </button>
-            )}
+        <div
+          className="modal-footer"
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleArchiveToggle}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
+            >
+              <Archive size={14} />
+              {isArchived ? 'Unarchive Record' : 'Archive Record'}
+            </button>
 
             <button
               type="button"
               className="btn btn-subtle btn-sm"
               onClick={() => setShowDeleteConfirm(true)}
-              style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '5px' }}
+              style={{
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                minHeight: '38px',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)'
+              }}
               title="Remove Customer Record from App"
             >
               <Trash2 size={14} /> Remove from App
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
             {onEdit && (
               <button
                 className="btn btn-primary btn-sm"
@@ -397,11 +414,12 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
                   onClose();
                   onEdit(purchase);
                 }}
+                style={{ minHeight: '38px' }}
               >
                 <Edit3 size={14} /> Edit Buyback
               </button>
             )}
-            <button className="btn btn-secondary" onClick={onClose}>
+            <button className="btn btn-secondary" onClick={onClose} style={{ minHeight: '38px' }}>
               Close
             </button>
           </div>

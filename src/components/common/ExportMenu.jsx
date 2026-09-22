@@ -58,10 +58,12 @@ export const ExportMenu = ({ onExportJSON, onExportCSV, disabled = false }) => {
             left: 0,
             zIndex: 100,
             minWidth: '200px',
+            maxWidth: 'calc(100vw - 32px)',
             padding: '6px',
             boxShadow: 'var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.25))',
             borderRadius: 'var(--radius-md, 10px)',
-            border: '1px solid var(--border-subtle)'
+            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-surface)'
           }}
           role="menu"
         >

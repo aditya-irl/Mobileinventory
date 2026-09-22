@@ -219,7 +219,8 @@ export const Reports = () => {
           Brand Profitability & Stock Distribution
         </h3>
 
-        <div className="table-container">
+        {/* Desktop Table */}
+        <div className="table-container hide-mobile">
           <table className="data-table">
             <thead>
               <tr>
@@ -254,6 +255,50 @@ export const Reports = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Responsive Cards */}
+        <div className="hide-desktop" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+          {brandMatrix.map((item) => (
+            <div
+              key={item.brand}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-subtle)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{item.brand}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Total: <strong style={{ color: 'var(--text-primary)' }}>{item.totalUnits} units</strong>
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '0.78rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Available Stock</div>
+                  <div style={{ fontWeight: 700, color: '#10b981' }}>{item.availableUnits} phones</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Units Sold</div>
+                  <div style={{ fontWeight: 700, color: '#3b82f6' }}>{item.soldUnits} phones</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Active Inventory Value</div>
+                  <div style={{ fontWeight: 700, color: 'var(--primary-600)' }}>{formatCurrency(item.totalSelling, settings.currency)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Realized Profit</div>
+                  <div style={{ fontWeight: 800, color: '#10b981' }}>+{formatCurrency(item.realizedProfit, settings.currency)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
