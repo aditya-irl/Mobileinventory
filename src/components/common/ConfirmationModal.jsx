@@ -12,11 +12,26 @@ export const ConfirmationModal = ({
   danger = true,
   loading = false
 }) => {
+  // Lock background scroll when confirmation modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+    <div className="modal-backdrop confirmation-modal-backdrop" onClick={onClose}>
+      <div
+        className="modal-content confirmation-modal-content"
+        style={{ maxWidth: '440px' }}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
@@ -50,14 +65,22 @@ export const ConfirmationModal = ({
           </p>
         </div>
 
-        <div className="modal-footer">
-          <button className="btn btn-subtle" onClick={onClose} disabled={loading}>
+        <div className="modal-footer confirmation-modal-footer">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={loading}
+            style={{ minHeight: '44px' }}
+          >
             {cancelText}
           </button>
           <button
+            type="button"
             className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
             onClick={onConfirm}
             disabled={loading}
+            style={{ minHeight: '44px' }}
           >
             {loading ? 'Processing...' : confirmText}
           </button>
