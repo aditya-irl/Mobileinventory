@@ -23,9 +23,10 @@ import {
 import { ConfirmationModal } from '../common/ConfirmationModal';
 
 export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onEdit, onDelete }) => {
-  const { inventory, settings, deletePurchase } = useInventory();
+  const { inventory, settings, deletePurchase, archivePurchase } = useInventory();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   
   const [viewerState, setViewerState] = useState({
     isOpen: false,
@@ -35,6 +36,36 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
   });
 
   if (!isOpen || !purchase) return null;
+
+  const isArchived = purchase.status === 'Archived';
+
+  const handleArchiveToggle = async () => {
+    if (isArchiving) return;
+    setIsArchiving(true);
+    try {
+      if (onArchive) {
+        await onArchive(purchase.purchase_id);
+      } else if (archivePurchase) {
+        await archivePurchase(purchase.purchase_id);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Error toggling archive:', err);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const formatPurchaseTime = (timeStr) => {
+    if (!timeStr) return '';
+    const str = String(timeStr).trim();
+    if (str.includes('GMT') || str.includes('1899')) {
+      const match = str.match(/(\d{2}:\d{2})/);
+      if (match) return `• ${match[1]}`;
+      return '';
+    }
+    return `• ${str}`;
+  };
 
   const documentPhotos = extractPurchaseDocumentPhotos(purchase);
   const devicePhotos = extractPurchaseDevicePhotos(purchase, inventory);
@@ -320,7 +351,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
 
               <div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Purchase Date & Time</div>
-                <div style={{ fontSize: '0.8125rem' }}>{formatDate(purchase.purchase_date)} {purchase.purchase_time || ''}</div>
+                <div style={{ fontSize: '0.8125rem' }}>{formatDate(purchase.purchase_date)} {formatPurchaseTime(purchase.purchase_time)}</div>
               </div>
             </div>
           </div>

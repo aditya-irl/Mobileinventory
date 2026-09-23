@@ -17,6 +17,125 @@ const InventoryContext = createContext();
 
 const SETTINGS_STORAGE_KEY = 'phonevault_settings_v1';
 
+/**
+ * Reconciles inventory stock with buyback purchase records.
+ * Any non-archived, non-removed buyback phone that is not already in inventory
+ * is synthesized as available stock so it is visible in the Inventory catalog.
+ */
+export const reconcileInventoryWithPurchases = (inventoryItems = [], purchaseRecords = []) => {
+  if (!Array.isArray(inventoryItems)) inventoryItems = [];
+  if (!Array.isArray(purchaseRecords)) return inventoryItems;
+
+  let removedPurchaseIds = [];
+  try {
+    removedPurchaseIds = JSON.parse(localStorage.getItem('phonevault_removed_purchases_v1') || '[]');
+  } catch (e) {}
+
+  let removedInventoryIds = [];
+  try {
+    removedInventoryIds = JSON.parse(localStorage.getItem('phonevault_removed_inventory_v1') || '[]');
+  } catch (e) {}
+
+  // Filter out any inventory items that match explicitly removed IDs
+  const activeInventory = inventoryItems.filter(item => {
+    if (item.inventory_id && removedInventoryIds.includes(item.inventory_id)) {
+      return false;
+    }
+    if (item.supplier) {
+      for (const remId of removedPurchaseIds) {
+        if (item.supplier.includes(remId)) return false;
+      }
+    }
+    return true;
+  });
+
+  purchaseRecords.forEach(p => {
+    // 1. Skip if purchase was removed from app by user
+    if (!p || !p.purchase_id || removedPurchaseIds.includes(p.purchase_id)) return;
+
+    // 2. Skip if archived (archived purchases are not active unsold stock)
+    if (p.status === 'Archived') return;
+
+    // 3. Check if phone is already represented in inventory
+    const exists = activeInventory.some(inv => {
+      // Linked via supplier tag (e.g. "Buyback / PUR-0004")
+      if (inv.supplier && inv.supplier.includes(p.purchase_id)) return true;
+      // Linked via notes tag (e.g. "Ref: PUR-0004")
+      if (inv.notes && inv.notes.includes(p.purchase_id)) return true;
+      // Linked via primary IMEI match
+      if (p.imei_1 && (String(inv.imei_1).trim() === String(p.imei_1).trim() || String(inv.imei_2).trim() === String(p.imei_1).trim())) {
+        return true;
+      }
+      // Linked via inventory_id if unique and not assigned to another purchase
+      if (p.inventory_id && inv.inventory_id === p.inventory_id) {
+        if (!inv.supplier || !inv.supplier.startsWith('Buyback / PUR-') || inv.supplier.includes(p.purchase_id)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (!exists) {
+      // Determine unique inventory_id
+      let assignedInvId = p.inventory_id;
+      if (!assignedInvId || activeInventory.some(inv => inv.inventory_id === assignedInvId)) {
+        assignedInvId = `INV-${p.purchase_id.replace('PUR-', '')}`;
+      }
+
+      if (removedInventoryIds.includes(assignedInvId) || (p.inventory_id && removedInventoryIds.includes(p.inventory_id))) {
+        return;
+      }
+
+      const purchasePrice = Number(p.purchase_price) || 0;
+      const targetSellingPrice = Number(p.target_selling_price || p.selling_price) || Math.round(purchasePrice * 1.15);
+      const profit = targetSellingPrice - purchasePrice;
+
+      // Extract device photos from purchase
+      let photos = [];
+      if (Array.isArray(p.device_photos) && p.device_photos.length > 0) {
+        photos = p.device_photos;
+      } else if (Array.isArray(p.photo_urls) && p.photo_urls.length > 0) {
+        photos = p.photo_urls;
+      } else if (typeof p.photo_urls === 'string' && p.photo_urls.trim()) {
+        try { photos = JSON.parse(p.photo_urls); } catch (e) { photos = [p.photo_urls.trim()]; }
+      }
+
+      activeInventory.push({
+        inventory_id: assignedInvId,
+        brand: p.brand || '',
+        model: p.model || '',
+        variant: p.variant || '',
+        color: p.color || '',
+        storage: p.storage || '',
+        ram: p.ram || '',
+        imei_1: p.imei_1 || '',
+        imei_2: p.imei_2 || '',
+        serial_number: p.serial_number || '',
+        battery_health: p.battery_health !== undefined && p.battery_health !== null && p.battery_health !== '' ? Number(p.battery_health) : 100,
+        condition: p.condition || 'Like New',
+        purchase_price: purchasePrice,
+        selling_price: targetSellingPrice,
+        profit: profit,
+        purchase_date: p.purchase_date || '',
+        selling_date: '',
+        supplier: `Buyback / ${p.purchase_id}`,
+        customer: '',
+        status: 'Available',
+        accessories: p.accessories || 'Handset only',
+        warranty: p.warranty || 'Store Warranty',
+        notes: p.notes ? `Buyback from ${p.seller_name || ''} (Ref: ${p.purchase_id}). ${p.notes}` : `Buyback from ${p.seller_name || ''} (Ref: ${p.purchase_id})`,
+        photo_urls: photos,
+        created_at: p.created_at || '',
+        updated_at: p.updated_at || '',
+        _fromBuyback: true,
+        purchase_id: p.purchase_id
+      });
+    }
+  });
+
+  return activeInventory;
+};
+
 export const InventoryProvider = ({ children }) => {
   const { showSuccess, showError, showWarning, showInfo } = useToast();
 
@@ -84,12 +203,12 @@ export const InventoryProvider = ({ children }) => {
           api.getPurchases()
         ]);
 
-        if (invRes.success && Array.isArray(invRes.data)) {
-          setInventory(invRes.data);
-        }
-        if (purRes.success && Array.isArray(purRes.data)) {
-          setPurchases(purRes.data);
-        }
+        const rawPurchases = purRes.success && Array.isArray(purRes.data) ? purRes.data : [];
+        const rawInventory = invRes.success && Array.isArray(invRes.data) ? invRes.data : [];
+        const reconciled = reconcileInventoryWithPurchases(rawInventory, rawPurchases);
+
+        setPurchases(rawPurchases);
+        setInventory(reconciled);
       } catch (err) {
         showError(err.message || 'Error communicating with local database.');
       } finally {
@@ -114,11 +233,14 @@ export const InventoryProvider = ({ children }) => {
         api.getPurchases()
       ]);
 
-      if (invRes.success && Array.isArray(invRes.data)) {
-        setInventory(invRes.data);
-        if (purRes.success && Array.isArray(purRes.data)) {
-          setPurchases(purRes.data);
-        }
+      const rawPurchases = purRes.success && Array.isArray(purRes.data) ? purRes.data : [];
+      const rawInventory = Array.isArray(invRes.data) ? invRes.data : [];
+      const reconciled = reconcileInventoryWithPurchases(rawInventory, rawPurchases);
+
+      setPurchases(rawPurchases);
+      setInventory(reconciled);
+
+      if (invRes.success) {
         setConnectionStatus({
           state: 'connected',
           mode: 'google',
@@ -284,9 +406,21 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
-  // Archive Purchase
+  // Archive Purchase (Toggle Archive / Unarchive)
   const archivePurchase = async (purchaseId) => {
     try {
+      const target = purchases.find(p => p.purchase_id === purchaseId);
+      if (target && target.status === 'Archived') {
+        const result = await api.updatePurchase({ purchase_id: purchaseId, status: 'Completed' });
+        if (result.success) {
+          await fetchAllData(true);
+          showSuccess(`Purchase ${purchaseId} unarchived.`, 'Unarchived');
+          return { success: true };
+        }
+        showError(result.error || 'Failed to unarchive purchase.');
+        return { success: false };
+      }
+
       const result = await api.archivePurchase(purchaseId);
       if (result.success) {
         await fetchAllData(true);
@@ -307,6 +441,7 @@ export const InventoryProvider = ({ children }) => {
       const result = await api.deletePurchase(purchaseId);
       if (result.success) {
         setPurchases(prev => prev.filter(p => p.purchase_id !== purchaseId));
+        setInventory(prev => prev.filter(inv => !inv.supplier || !inv.supplier.includes(purchaseId)));
         showSuccess(`Customer record ${purchaseId} removed from app.`, 'Record Removed');
         return { success: true };
       }
@@ -359,6 +494,15 @@ export const InventoryProvider = ({ children }) => {
     try {
       const result = await api.deleteInventory(inventoryId);
       if (result.success) {
+        try {
+          const removedInvKey = 'phonevault_removed_inventory_v1';
+          const removed = JSON.parse(localStorage.getItem(removedInvKey) || '[]');
+          if (!removed.includes(inventoryId)) {
+            removed.push(inventoryId);
+            localStorage.setItem(removedInvKey, JSON.stringify(removed));
+          }
+        } catch (e) {}
+
         await fetchAllData(true);
         showSuccess(`Device ${inventoryId} removed from inventory.`, 'Deleted');
         return { success: true };
@@ -391,8 +535,11 @@ export const InventoryProvider = ({ children }) => {
 
   // Reset to initial sample data
   const resetToSampleData = () => {
+    localStorage.removeItem('phonevault_removed_inventory_v1');
+    localStorage.removeItem('phonevault_removed_purchases_v1');
     const data = api.resetSampleData();
-    setInventory(data.inventory);
+    const reconciled = reconcileInventoryWithPurchases(data.inventory, data.purchases);
+    setInventory(reconciled);
     setPurchases(data.purchases);
     showSuccess('Sample inventory and buyback records restored.');
   };

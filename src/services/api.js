@@ -484,9 +484,34 @@ export const api = {
         }
         return json;
       }
+
+      // If the row does not exist in Google Sheets yet (e.g. newly converted buyback), add it
+      if (json && !json.success && (json.error?.includes('not found') || json.error?.includes('empty') || json.error?.includes('is empty'))) {
+        try {
+          const addRes = await api.addInventory(payloadData);
+          if (addRes && addRes.success) {
+            if (index !== -1) {
+              current[index] = updatedItem;
+              saveLocalInventory(current);
+            } else {
+              saveLocalInventory([updatedItem, ...current]);
+            }
+            return addRes;
+          }
+        } catch (addErr) {
+          console.warn('Fallback addInventory for unrecorded device failed:', addErr);
+        }
+      }
+
       throw new Error(json?.error || `Failed to update device ${itemData.inventory_id} in Google Sheets`);
     } catch (err) {
       console.error('Google Apps Script update error:', err);
+      // Fallback local update for resilience
+      if (index !== -1) {
+        current[index] = updatedItem;
+        saveLocalInventory(current);
+        return { success: true, data: updatedItem, cached: true };
+      }
       throw new Error(err.message || 'Unable to update device in Google Sheets.');
     }
   },
@@ -545,10 +570,18 @@ export const api = {
         })
       });
       const json = await res.json();
-      if (!json.success) throw new Error(json.error || 'Failed to delete from Google Sheets');
-      return json;
+      if (!json.success && !json.error?.includes('not found') && !json.error?.includes('empty')) {
+        throw new Error(json.error || 'Failed to delete from Google Sheets');
+      }
+      const current = getLocalInventory();
+      const filtered = current.filter(i => i.inventory_id !== inventoryId);
+      saveLocalInventory(filtered);
+      return json.success ? json : { success: true, message: `Device ${inventoryId} deleted.` };
     } catch (err) {
-      throw new Error(err.message || 'Unable to delete device from Google Sheets');
+      const current = getLocalInventory();
+      const filtered = current.filter(i => i.inventory_id !== inventoryId);
+      saveLocalInventory(filtered);
+      return { success: true, message: `Device ${inventoryId} removed locally.` };
     }
   },
 
@@ -816,8 +849,54 @@ export const api = {
       const json = await res.json();
 
       if (json && json.success) {
-        saveLocalPurchases([json.data || newPurchase, ...purchases]);
-        return json;
+        const purId = json.purchase_id || json.data?.purchase_id || nextPurId;
+        const invId = json.inventory_id || json.data?.inventory_id || nextInvId;
+
+        const recordedPurchase = {
+          ...newPurchase,
+          ...(json.data || {}),
+          purchase_id: purId,
+          inventory_id: invId
+        };
+
+        const newInventory = {
+          inventory_id: invId,
+          brand: purchaseData.brand || '',
+          model: purchaseData.model || '',
+          variant: purchaseData.variant || '',
+          color: purchaseData.color || '',
+          storage: purchaseData.storage || '',
+          ram: purchaseData.ram || '',
+          imei_1: purchaseData.imei_1 || '',
+          imei_2: purchaseData.imei_2 || '',
+          serial_number: purchaseData.serial_number || '',
+          battery_health: purchaseData.battery_health !== undefined ? purchaseData.battery_health : 100,
+          condition: purchaseData.condition || 'Like New',
+          purchase_price: purchasePrice,
+          selling_price: targetSellingPrice,
+          profit: targetSellingPrice - purchasePrice,
+          purchase_date: purchaseDate,
+          selling_date: '',
+          supplier: `Buyback / ${purId}`,
+          customer: '',
+          status: 'Available',
+          accessories: purchaseData.accessories || 'Handset only',
+          warranty: purchaseData.warranty || 'Store Warranty',
+          notes: `Purchased from customer ${purchaseData.seller_name || ''} (Ref: ${purId}). ${purchaseData.notes || ''}`,
+          photo_urls: purchaseData.device_photos || purchaseData.photo_urls || [],
+          created_at: nowISO,
+          updated_at: nowISO
+        };
+
+        saveLocalPurchases([recordedPurchase, ...purchases.filter(p => p.purchase_id !== purId)]);
+        saveLocalInventory([newInventory, ...inventory.filter(i => i.inventory_id !== invId)]);
+
+        return {
+          ...json,
+          purchase_id: purId,
+          inventory_id: invId,
+          data: recordedPurchase
+        };
       }
 
       // 2. If remote returns "Unknown action" (older deployment), fallback to saving inventory via action=add
