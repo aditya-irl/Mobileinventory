@@ -79,50 +79,55 @@ export const DeviceDetailsModal = ({
     <>
       <div className="modal-backdrop" onClick={onClose}>
         <div
-          className="modal-content"
+          className="modal-content device-details-modal"
           style={{ maxWidth: '780px' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="modal-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                    {item.brand} {item.model}
-                  </h3>
-                  <Badge status={item.status} />
-                </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  ID: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.inventory_id}</span>
-                  {item.variant ? ` • ${item.variant}` : ''}
-                </div>
+          <div className="modal-header details-modal-header">
+            <div className="details-header-info">
+              <div className="details-header-title-row">
+                <h3 className="details-header-title">
+                  {item.brand} {item.model}
+                </h3>
+                <Badge status={item.status} />
+              </div>
+              <div className="details-header-subtitle">
+                ID: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{item.inventory_id}</span>
+                {item.variant ? ` • ${item.variant}` : ''}
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={onClose}
+              className="details-header-close-btn"
+              aria-label="Close modal"
+              id="close-device-details-btn"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="details-header-actions-group">
               <button
-                className="btn btn-secondary btn-icon"
+                className="btn btn-secondary details-header-action-btn"
                 onClick={() => printDeviceSpecSheet(item, settings.storeName, settings.currency)}
                 title="Print Device Spec Sheet"
+                id="print-device-details-btn"
               >
                 <Printer size={16} />
+                <span className="details-action-btn-label">Print</span>
               </button>
               <button
-                className="btn btn-secondary btn-icon"
+                className="btn btn-secondary details-header-action-btn"
                 onClick={() => {
                   onClose();
                   onEdit(item);
                 }}
                 title="Edit Device"
+                id="edit-device-details-btn"
               >
                 <Edit size={16} />
-              </button>
-              <button
-                onClick={onClose}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
-              >
-                <X size={20} />
+                <span className="details-action-btn-label">Edit</span>
               </button>
             </div>
           </div>

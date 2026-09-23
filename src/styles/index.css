@@ -374,6 +374,93 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 10;
 }
 
+/* Shared Details Modal Header (Desktop Default) */
+.details-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 24px;
+  gap: 8px;
+}
+
+.details-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: auto;
+  order: 1;
+  min-width: 0;
+}
+
+.details-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.details-header-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.details-header-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.details-header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  order: 2;
+}
+
+.details-header-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+}
+
+.device-details-modal .details-action-btn-label {
+  display: none;
+}
+
+.device-details-modal .details-header-action-btn {
+  padding: 8px;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.details-header-close-btn {
+  order: 3;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.details-header-close-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-subtle);
+}
+
 .modal-body {
   padding: 24px;
   overflow-y: auto;
@@ -942,7 +1029,8 @@ h1, h2, h3, h4, h5, h6 {
     display: block !important;
   }
 
-  /* ---- PURCHASE DETAILS MODAL MOBILE ACTION FOOTER ---- */
+  /* ---- DETAILS MODALS (DEVICE & PURCHASE) MOBILE VIEWPORT & HEADER ---- */
+  .device-details-modal,
   .purchase-details-modal {
     max-height: 92dvh !important;
     display: flex !important;
@@ -951,16 +1039,118 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 20px 20px 0 0 !important;
   }
 
-  .purchase-details-modal .modal-header {
-    flex-shrink: 0 !important;
-    padding: 14px 16px 12px !important;
-  }
-
+  .device-details-modal .modal-body,
   .purchase-details-modal .modal-body {
     flex: 1 1 auto !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     padding: 14px 16px !important;
+  }
+
+  /* Shared Mobile Header for DeviceDetailsModal & PurchaseDetailsModal */
+  .details-modal-header {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-areas:
+      "info close"
+      "actions actions" !important;
+    gap: 12px 8px !important;
+    padding: 14px 16px 12px !important;
+    align-items: start !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    background: var(--bg-surface) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .details-header-info {
+    grid-area: info !important;
+    min-width: 0 !important;
+    padding-right: 6px !important;
+  }
+
+  .details-header-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .details-header-title {
+    font-size: 1.125rem !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+    margin: 0 !important;
+    color: var(--text-primary) !important;
+  }
+
+  .details-header-subtitle {
+    font-size: 0.8125rem !important;
+    color: var(--text-muted) !important;
+    margin-top: 3px !important;
+  }
+
+  .details-header-close-btn {
+    grid-area: close !important;
+    justify-self: end !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-secondary) !important;
+    background: var(--bg-subtle) !important;
+    border: 1px solid var(--border-subtle) !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .details-header-close-btn:active {
+    background-color: var(--border-subtle) !important;
+    transform: scale(0.96);
+  }
+
+  .details-header-actions-group {
+    grid-area: actions !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .details-header-action-btn {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 7px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--radius-md) !important;
+    background-color: var(--bg-subtle) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    padding: 0 12px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+  }
+
+  .details-header-action-btn:active {
+    background-color: var(--border-subtle) !important;
+    transform: scale(0.98);
+  }
+
+  .details-action-btn-label {
+    display: inline !important;
   }
 
   .purchase-modal-footer {

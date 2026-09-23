@@ -110,10 +110,10 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onU
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="modal-header">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Purchase Record {purchase.purchase_id}</h3>
+        <div className="modal-header details-modal-header">
+          <div className="details-header-info">
+            <div className="details-header-title-row">
+              <h3 className="details-header-title">Purchase Record {purchase.purchase_id}</h3>
               <span
                 style={{
                   fontSize: '0.75rem',
@@ -127,39 +127,44 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onU
                 {isArchived ? 'Archived' : (purchase.status || 'Completed')}
               </span>
             </div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <div className="details-header-subtitle">
               Linked Stock Item: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary-600)' }}>{purchase.inventory_id}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={onClose}
+            className="details-header-close-btn"
+            aria-label="Close modal"
+            id="close-purchase-details-btn"
+          >
+            <X size={20} />
+          </button>
+
+          <div className="details-header-actions-group">
+            <button
+              className="btn btn-secondary details-header-action-btn"
+              onClick={() => printBuybackReceipt(purchase, settings.storeName, settings.currency)}
+              title="Print Buyback Invoice & Certificate"
+              id="print-purchase-details-btn"
+            >
+              <Printer size={16} />
+              <span className="details-action-btn-label">Print Receipt</span>
+            </button>
             {!isArchived && onEdit && (
               <button
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary details-header-action-btn"
                 onClick={() => {
                   onClose();
                   onEdit(purchase);
                 }}
                 title="Edit Buyback and Photos"
-                style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+                id="edit-purchase-details-btn"
               >
-                <Edit3 size={14} />
-                <span>Edit</span>
+                <Edit3 size={16} />
+                <span className="details-action-btn-label">Edit</span>
               </button>
             )}
-            <button
-              className="btn btn-secondary btn-icon"
-              onClick={() => printBuybackReceipt(purchase, settings.storeName, settings.currency)}
-              title="Print Buyback Invoice & Certificate"
-            >
-              <Printer size={16} />
-            </button>
-            <button
-              onClick={onClose}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              <X size={20} />
-            </button>
           </div>
         </div>
 
