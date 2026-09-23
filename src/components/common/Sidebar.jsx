@@ -8,6 +8,7 @@ import {
   BarChart3,
   Settings,
   ShieldCheck,
+  Archive,
   Sparkles
 } from 'lucide-react';
 
@@ -29,9 +30,15 @@ export const Sidebar = ({ currentTab, setCurrentTab }) => {
     },
     {
       id: 'purchases',
-      label: 'Buyback / Purchases',
+      label: 'Buyback',
       icon: ShieldCheck,
-      badge: purchases.length || null
+      badge: statistics.activeBuybacks || null
+    },
+    {
+      id: 'archived',
+      label: 'Archived',
+      icon: Archive,
+      badge: statistics.archivedBuybacks || null
     },
     {
       id: 'add',

@@ -36,7 +36,10 @@ export const reconcileInventoryWithPurchases = (inventoryItems = [], purchaseRec
     removedInventoryIds = JSON.parse(localStorage.getItem('phonevault_removed_inventory_v1') || '[]');
   } catch (e) {}
 
-  // Filter out any inventory items that match explicitly removed IDs
+  // Get all archived purchase IDs
+  const archivedPurchaseIds = purchaseRecords.filter(p => p && p.status === 'Archived').map(p => p.purchase_id);
+
+  // Filter out any inventory items that match explicitly removed IDs, or available items from archived buybacks
   const activeInventory = inventoryItems.filter(item => {
     if (item.inventory_id && removedInventoryIds.includes(item.inventory_id)) {
       return false;
@@ -44,6 +47,12 @@ export const reconcileInventoryWithPurchases = (inventoryItems = [], purchaseRec
     if (item.supplier) {
       for (const remId of removedPurchaseIds) {
         if (item.supplier.includes(remId)) return false;
+      }
+      // If the buyback is archived, unsold/available stock must NOT be in active inventory
+      if (item.status === 'Available') {
+        for (const archId of archivedPurchaseIds) {
+          if (item.supplier.includes(archId)) return false;
+        }
       }
     }
     return true;
@@ -406,21 +415,9 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
-  // Archive Purchase (Toggle Archive / Unarchive)
+  // Archive Purchase Record
   const archivePurchase = async (purchaseId) => {
     try {
-      const target = purchases.find(p => p.purchase_id === purchaseId);
-      if (target && target.status === 'Archived') {
-        const result = await api.updatePurchase({ purchase_id: purchaseId, status: 'Completed' });
-        if (result.success) {
-          await fetchAllData(true);
-          showSuccess(`Purchase ${purchaseId} unarchived.`, 'Unarchived');
-          return { success: true };
-        }
-        showError(result.error || 'Failed to unarchive purchase.');
-        return { success: false };
-      }
-
       const result = await api.archivePurchase(purchaseId);
       if (result.success) {
         await fetchAllData(true);
@@ -431,6 +428,23 @@ export const InventoryProvider = ({ children }) => {
       return { success: false };
     } catch (err) {
       showError(err.message || 'Unable to archive purchase.');
+      return { success: false };
+    }
+  };
+
+  // Unarchive Purchase Record
+  const unarchivePurchase = async (purchaseId) => {
+    try {
+      const result = await api.unarchivePurchase(purchaseId);
+      if (result.success) {
+        await fetchAllData(true);
+        showSuccess(`Purchase ${purchaseId} unarchived.`, 'Unarchived');
+        return { success: true };
+      }
+      showError(result.error || 'Failed to unarchive purchase.');
+      return { success: false };
+    } catch (err) {
+      showError(err.message || 'Unable to unarchive purchase.');
       return { success: false };
     }
   };
@@ -659,7 +673,9 @@ export const InventoryProvider = ({ children }) => {
       realizedProfit,
       brandCounts,
       statusCounts,
-      totalBuybacks: purchases.length
+      totalBuybacks: purchases.length,
+      activeBuybacks: purchases.filter(p => p && p.status !== 'Archived').length,
+      archivedBuybacks: purchases.filter(p => p && p.status === 'Archived').length
     };
   }, [inventory, purchases]);
 
@@ -702,6 +718,7 @@ export const InventoryProvider = ({ children }) => {
         uploadDevicePhoto,
         traceIMEI,
         archivePurchase,
+        unarchivePurchase,
         deletePurchase,
         updateInventoryItem,
         markAsSold,

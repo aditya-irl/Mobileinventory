@@ -1,7 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { Header } from '../components/common/Header';
 import { Sidebar } from '../components/common/Sidebar';
-import { BottomNav } from '../components/common/BottomNav';
 import { MobileDrawer } from '../components/common/MobileDrawer';
 import { PageLoader } from '../components/common/PageLoader';
 
@@ -10,12 +9,14 @@ const Dashboard = lazy(() => import('../pages/Dashboard'));
 const Inventory = lazy(() => import('../pages/Inventory'));
 const AddInventory = lazy(() => import('../pages/AddInventory'));
 const Purchases = lazy(() => import('../pages/Purchases'));
+const Archived = lazy(() => import('../pages/Archived'));
 const SoldItems = lazy(() => import('../pages/SoldItems'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Settings = lazy(() => import('../pages/Settings'));
 
 export const AppLayout = () => {
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [purchasesTab, setPurchasesTab] = useState('ledger');
   const [selectedDeviceFromDash, setSelectedDeviceFromDash] = useState(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -24,16 +25,28 @@ export const AppLayout = () => {
     setCurrentTab('inventory');
   };
 
+  const handleNavigate = (tab) => {
+    if (tab === 'purchases') {
+      setPurchasesTab('ledger');
+    }
+    setCurrentTab(tab);
+  };
+
+  const handleNewBuyback = () => {
+    setPurchasesTab('wizard');
+    setCurrentTab('purchases');
+  };
+
   return (
     <div className="app-container">
       {/* Desktop Collapsible Sidebar */}
-      <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      <Sidebar currentTab={currentTab} setCurrentTab={handleNavigate} />
 
       {/* Main Content Area */}
       <div className="main-content">
         <Header
           currentTab={currentTab}
-          setCurrentTab={setCurrentTab}
+          setCurrentTab={handleNavigate}
           onOpenDrawer={() => setIsMobileDrawerOpen(true)}
           onSearchFocus={() => {
             if (currentTab !== 'inventory') {
@@ -46,25 +59,29 @@ export const AppLayout = () => {
           <Suspense fallback={<PageLoader />}>
             {currentTab === 'dashboard' && (
               <Dashboard
-                setCurrentTab={setCurrentTab}
+                setCurrentTab={handleNavigate}
                 onSelectDevice={handleSelectDeviceFromDash}
               />
             )}
 
             {currentTab === 'inventory' && (
               <Inventory
-                setCurrentTab={setCurrentTab}
+                setCurrentTab={handleNavigate}
                 selectedDeviceFromDash={selectedDeviceFromDash}
                 onClearSelectedDevice={() => setSelectedDeviceFromDash(null)}
               />
             )}
 
             {currentTab === 'purchases' && (
-              <Purchases />
+              <Purchases initialTab={purchasesTab} />
+            )}
+
+            {currentTab === 'archived' && (
+              <Archived />
             )}
 
             {currentTab === 'add' && (
-              <AddInventory setCurrentTab={setCurrentTab} />
+              <AddInventory setCurrentTab={handleNavigate} />
             )}
 
             {currentTab === 'sold' && (
@@ -82,19 +99,13 @@ export const AppLayout = () => {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNav
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        onOpenDrawer={() => setIsMobileDrawerOpen(true)}
-      />
-
-      {/* Mobile Navigation Drawer */}
+      {/* Mobile Top-Right Navigation Drawer (replaces fixed BottomNav) */}
       <MobileDrawer
         isOpen={isMobileDrawerOpen}
         onClose={() => setIsMobileDrawerOpen(false)}
         currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
+        setCurrentTab={handleNavigate}
+        onNewBuyback={handleNewBuyback}
       />
     </div>
   );

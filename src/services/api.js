@@ -735,11 +735,31 @@ export const api = {
         try {
           removedIds = JSON.parse(localStorage.getItem('phonevault_removed_purchases_v1') || '[]');
         } catch (e) {}
-        const filtered = removedIds.length > 0
-          ? json.data.filter(p => !removedIds.includes(p.purchase_id))
-          : json.data;
-        saveLocalPurchases(filtered);
-        return { ...json, data: filtered, total: filtered.length, mode: 'google' };
+
+        let locallyArchivedIds = [];
+        try {
+          locallyArchivedIds = JSON.parse(localStorage.getItem('phonevault_archived_purchases_v1') || '[]');
+        } catch (e) {}
+
+        let locallyUnarchivedIds = [];
+        try {
+          locallyUnarchivedIds = JSON.parse(localStorage.getItem('phonevault_unarchived_purchases_v1') || '[]');
+        } catch (e) {}
+
+        const normalized = json.data
+          .filter(p => !removedIds.includes(p.purchase_id))
+          .map(p => {
+            if (locallyUnarchivedIds.includes(p.purchase_id)) {
+              return { ...p, status: 'Completed' };
+            }
+            if (locallyArchivedIds.includes(p.purchase_id)) {
+              return { ...p, status: 'Archived' };
+            }
+            return p;
+          });
+
+        saveLocalPurchases(normalized);
+        return { ...json, data: normalized, total: normalized.length, mode: 'google' };
       }
       // If endpoint not on remote yet, return local purchases
       const local = getLocalPurchases();
@@ -1069,18 +1089,39 @@ export const api = {
    * Archive Purchase Record
    */
   archivePurchase: async (purchaseId) => {
-    const url = getApiUrl();
-    if (!url) {
-      const purchases = getLocalPurchases();
-      const index = purchases.findIndex(p => p.purchase_id === purchaseId);
-      if (index === -1) throw new Error(`Purchase ${purchaseId} not found.`);
+    if (!purchaseId) throw new Error('purchase_id is required.');
 
+    // 1. Clear unarchive tracking if present
+    try {
+      const unarchivedKey = 'phonevault_unarchived_purchases_v1';
+      const unarchived = JSON.parse(localStorage.getItem(unarchivedKey) || '[]');
+      localStorage.setItem(unarchivedKey, JSON.stringify(unarchived.filter(id => id !== purchaseId)));
+    } catch (e) {}
+
+    // 2. Track in local archived tracking
+    try {
+      const archivedKey = 'phonevault_archived_purchases_v1';
+      const archived = JSON.parse(localStorage.getItem(archivedKey) || '[]');
+      if (!archived.includes(purchaseId)) {
+        archived.push(purchaseId);
+        localStorage.setItem(archivedKey, JSON.stringify(archived));
+      }
+    } catch (e) {}
+
+    // 3. Update local purchases cache immediately
+    const purchases = getLocalPurchases();
+    const index = purchases.findIndex(p => p.purchase_id === purchaseId);
+    if (index !== -1) {
       purchases[index] = {
         ...purchases[index],
         status: 'Archived',
         updated_at: new Date().toISOString()
       };
       saveLocalPurchases(purchases);
+    }
+
+    const url = getApiUrl();
+    if (!url) {
       return { success: true, message: `Purchase ${purchaseId} archived.` };
     }
 
@@ -1091,19 +1132,48 @@ export const api = {
         body: JSON.stringify({ action: 'archivePurchase', purchase_id: purchaseId })
       });
       const json = await res.json();
-      if (json && json.success) return json;
-
-      // Fallback local archive
-      const purchases = getLocalPurchases();
-      const index = purchases.findIndex(p => p.purchase_id === purchaseId);
-      if (index !== -1) {
-        purchases[index].status = 'Archived';
-        saveLocalPurchases(purchases);
-      }
-      return { success: true, message: `Purchase ${purchaseId} archived.` };
+      return json && json.success ? json : { success: true, message: `Purchase ${purchaseId} archived.` };
     } catch (err) {
-      throw new Error(err.message || 'Unable to archive purchase record');
+      return { success: true, message: `Purchase ${purchaseId} archived locally.` };
     }
+  },
+
+  /**
+   * Unarchive Purchase Record
+   */
+  unarchivePurchase: async (purchaseId) => {
+    if (!purchaseId) throw new Error('purchase_id is required.');
+
+    // 1. Clear archive tracking if present
+    try {
+      const archivedKey = 'phonevault_archived_purchases_v1';
+      const archived = JSON.parse(localStorage.getItem(archivedKey) || '[]');
+      localStorage.setItem(archivedKey, JSON.stringify(archived.filter(id => id !== purchaseId)));
+    } catch (e) {}
+
+    // 2. Track in local unarchive tracking
+    try {
+      const unarchivedKey = 'phonevault_unarchived_purchases_v1';
+      const unarchived = JSON.parse(localStorage.getItem(unarchivedKey) || '[]');
+      if (!unarchived.includes(purchaseId)) {
+        unarchived.push(purchaseId);
+        localStorage.setItem(unarchivedKey, JSON.stringify(unarchived));
+      }
+    } catch (e) {}
+
+    // 3. Update local purchases cache immediately
+    const purchases = getLocalPurchases();
+    const index = purchases.findIndex(p => p.purchase_id === purchaseId);
+    if (index !== -1) {
+      purchases[index] = {
+        ...purchases[index],
+        status: 'Completed',
+        updated_at: new Date().toISOString()
+      };
+      saveLocalPurchases(purchases);
+    }
+
+    return { success: true, message: `Purchase ${purchaseId} unarchived and restored to active Buybacks.` };
   },
 
   /**
@@ -1144,6 +1214,9 @@ export const api = {
    */
   resetSampleData: () => {
     localStorage.removeItem('phonevault_removed_purchases_v1');
+    localStorage.removeItem('phonevault_removed_inventory_v1');
+    localStorage.removeItem('phonevault_archived_purchases_v1');
+    localStorage.removeItem('phonevault_unarchived_purchases_v1');
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_INVENTORY));
     localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_PURCHASES));
     return {

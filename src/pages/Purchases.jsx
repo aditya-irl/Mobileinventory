@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { BuybackWizard } from '../components/purchases/BuybackWizard';
 import { PurchaseDetailsModal } from '../components/purchases/PurchaseDetailsModal';
@@ -25,19 +25,30 @@ import {
 } from 'lucide-react';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
-export const Purchases = () => {
+export const Purchases = ({ initialTab = 'ledger' }) => {
   const { purchases, archivePurchase, deletePurchase, settings } = useInventory();
 
-  const [activeTab, setActiveTab] = useState('ledger'); // 'wizard' | 'ledger' | 'trace'
+  const [activeTab, setActiveTab] = useState(initialTab); // 'wizard' | 'ledger' | 'trace'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [purchaseToRemove, setPurchaseToRemove] = useState(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Filtered Purchases
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Active Purchases only (PART 5: Active Buybacks must exclude archived records)
+  const activePurchases = useMemo(() => {
+    return purchases.filter(p => p && p.status !== 'Archived');
+  }, [purchases]);
+
+  // Filtered Active Purchases
   const filteredPurchases = useMemo(() => {
-    return purchases.filter(p => {
+    return activePurchases.filter(p => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matches =
@@ -52,12 +63,12 @@ export const Purchases = () => {
       }
       return true;
     });
-  }, [purchases, searchQuery]);
+  }, [activePurchases, searchQuery]);
 
-  // Quick statistics
+  // Quick statistics based on active records
   const totalDisbursed = useMemo(() => {
-    return purchases.reduce((acc, p) => acc + (Number(p.purchase_price) || 0), 0);
-  }, [purchases]);
+    return activePurchases.reduce((acc, p) => acc + (Number(p.purchase_price) || 0), 0);
+  }, [activePurchases]);
 
   return (
     <div className="page-wrapper animate-fade-in">
@@ -199,11 +210,11 @@ export const Purchases = () => {
           {/* Purchases Table & Mobile Cards */}
           {filteredPurchases.length === 0 ? (
             <EmptyState
-              title="No buyback records found"
+              title="No active buyback records found"
               description={
-                purchases.length === 0
-                  ? 'No used phones bought back yet. Click "New Buyback" to record your first customer phone intake.'
-                  : 'No purchase records matched your search query.'
+                activePurchases.length === 0
+                  ? 'No active used phones bought back yet. Click "New Buyback" to record your first customer phone intake.'
+                  : 'No active purchase records matched your search query.'
               }
               actionText="Start First Buyback"
               onAction={() => setActiveTab('wizard')}

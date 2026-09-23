@@ -12,7 +12,7 @@ import {
   HardDrive,
   Database,
   AlertCircle,
-  Menu
+  MoreVertical
 } from 'lucide-react';
 
 export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer }) => {
@@ -141,7 +141,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
 
   return (
     <header
-      className="hide-mobile"
+      className="app-header"
       style={{
         position: 'sticky',
         top: 0,
@@ -149,54 +149,41 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '8px 24px',
+        padding: '8px 16px',
         backgroundColor: 'var(--bg-surface)',
         borderBottom: '1px solid var(--border-subtle)',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-        gap: '12px',
+        gap: '10px',
         width: '100%',
         boxSizing: 'border-box'
       }}
     >
-      {/* Mobile Menu & Branding (Visible on Mobile) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <button
-          type="button"
-          onClick={onOpenDrawer}
-          className="btn btn-secondary btn-icon hide-desktop"
-          style={{ width: '38px', height: '38px', padding: 0, flexShrink: 0 }}
-          title="Open Menu"
+      {/* Mobile Branding (Visible on Mobile Only) */}
+      <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 1 }}>
+        <img
+          src="/logo.svg"
+          alt="Logo"
+          style={{ width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0 }}
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+        <span
+          style={{
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            letterSpacing: '-0.02em',
+            color: 'var(--text-primary)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
         >
-          <Menu size={20} />
-        </button>
-
-        <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginRight: '4px' }}>
-          <img
-            src="/logo.svg"
-            alt="Logo"
-            style={{ width: '28px', height: '28px', borderRadius: '6px' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-          <span
-            style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-              whiteSpace: 'nowrap',
-              maxWidth: 'clamp(60px, 18vw, 120px)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }}
-          >
-            {settings.storeName || 'Rathore Mobiles'}
-          </span>
-        </div>
+          {settings.storeName || 'Rathore Mobiles'}
+        </span>
       </div>
 
-      {/* Search Input */}
-      <div style={{ flex: 1, minWidth: '100px', maxWidth: '420px', position: 'relative' }}>
+      {/* Desktop Search Input (Hidden on mobile to preserve touch space) */}
+      <div className="hide-mobile" style={{ flex: 1, minWidth: '100px', maxWidth: '420px', position: 'relative' }}>
         <Search
           size={15}
           style={{
@@ -242,11 +229,12 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
           onClick={() => fetchInventory(true)}
           title="Refresh Inventory"
           style={{ width: '36px', height: '36px', flexShrink: 0 }}
+          id="header-refresh-btn"
         >
           <RotateCw size={15} className={refreshing ? 'animate-spin' : ''} />
         </button>
 
-        {/* Theme Toggle (Desktop Only or compact) */}
+        {/* Theme Toggle (Desktop Only) */}
         <button
           className="btn btn-secondary btn-icon hide-mobile"
           onClick={toggleTheme}
@@ -256,7 +244,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
           {isDark ? <Sun size={15} /> : <Moon size={15} />}
         </button>
 
-        {/* Firebase Logout (Desktop Only - mobile has it in drawer) */}
+        {/* Firebase Logout (Desktop Only) */}
         {isAuthenticated && (
           <button
             className="btn btn-secondary btn-icon hide-mobile"
@@ -267,6 +255,32 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
             <LogOut size={15} />
           </button>
         )}
+
+        {/* Mobile Top-Right ⋮ Navigation Menu Button */}
+        <button
+          type="button"
+          onClick={onOpenDrawer}
+          className="btn btn-subtle hide-desktop"
+          style={{
+            width: '44px',
+            height: '44px',
+            minWidth: '44px',
+            minHeight: '44px',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--text-primary)',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            flexShrink: 0
+          }}
+          aria-label="Open navigation menu"
+          id="mobile-nav-toggle-btn"
+        >
+          <MoreVertical size={22} />
+        </button>
       </div>
     </header>
   );

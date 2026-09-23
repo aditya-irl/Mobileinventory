@@ -16,17 +16,21 @@ import {
   DollarSign,
   Calendar,
   Archive,
+  RotateCcw,
   Edit3,
   Trash2,
   Image as ImageIcon
 } from 'lucide-react';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 
-export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onEdit, onDelete }) => {
-  const { inventory, settings, deletePurchase, archivePurchase } = useInventory();
+export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onUnarchive, onEdit, onDelete }) => {
+  const { inventory, settings, deletePurchase, archivePurchase, unarchivePurchase } = useInventory();
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showUnarchiveConfirm, setShowUnarchiveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isUnarchiving, setIsUnarchiving] = useState(false);
   
   const [viewerState, setViewerState] = useState({
     isOpen: false,
@@ -39,7 +43,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
 
   const isArchived = purchase.status === 'Archived';
 
-  const handleArchiveToggle = async () => {
+  const handleArchive = async () => {
     if (isArchiving) return;
     setIsArchiving(true);
     try {
@@ -48,11 +52,30 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
       } else if (archivePurchase) {
         await archivePurchase(purchase.purchase_id);
       }
+      setShowArchiveConfirm(false);
       onClose();
     } catch (err) {
-      console.error('Error toggling archive:', err);
+      console.error('Error archiving purchase:', err);
     } finally {
       setIsArchiving(false);
+    }
+  };
+
+  const handleUnarchive = async () => {
+    if (isUnarchiving) return;
+    setIsUnarchiving(true);
+    try {
+      if (onUnarchive) {
+        await onUnarchive(purchase.purchase_id);
+      } else if (unarchivePurchase) {
+        await unarchivePurchase(purchase.purchase_id);
+      }
+      setShowUnarchiveConfirm(false);
+      onClose();
+    } catch (err) {
+      console.error('Error unarchiving purchase:', err);
+    } finally {
+      setIsUnarchiving(false);
     }
   };
 
@@ -97,11 +120,11 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
                   fontWeight: 700,
                   padding: '2px 8px',
                   borderRadius: 'var(--radius-full)',
-                  backgroundColor: 'var(--status-available-bg)',
-                  color: 'var(--status-available-text)'
+                  backgroundColor: isArchived ? 'rgba(148, 163, 184, 0.15)' : 'var(--status-available-bg)',
+                  color: isArchived ? '#64748b' : 'var(--status-available-text)'
                 }}
               >
-                {purchase.status || 'Completed'}
+                {isArchived ? 'Archived' : (purchase.status || 'Completed')}
               </span>
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -110,7 +133,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {onEdit && (
+            {!isArchived && onEdit && (
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
@@ -409,15 +432,29 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
           }}
         >
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleArchiveToggle}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
-            >
-              <Archive size={14} />
-              {isArchived ? 'Unarchive Record' : 'Archive Record'}
-            </button>
+            {isArchived ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowUnarchiveConfirm(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
+                id="unarchive-buyback-btn"
+              >
+                <RotateCcw size={14} />
+                Unarchive Record
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowArchiveConfirm(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
+                id="archive-buyback-btn"
+              >
+                <Archive size={14} />
+                Archive Record
+              </button>
+            )}
 
             <button
               type="button"
@@ -432,13 +469,14 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
                 backgroundColor: 'rgba(239, 68, 68, 0.08)'
               }}
               title="Remove Customer Record from App"
+              id="remove-buyback-btn"
             >
               <Trash2 size={14} /> Remove from App
             </button>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
-            {onEdit && (
+            {!isArchived && onEdit && (
               <button
                 className="btn btn-primary btn-sm"
                 onClick={() => {
@@ -446,11 +484,12 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
                   onEdit(purchase);
                 }}
                 style={{ minHeight: '38px' }}
+                id="edit-buyback-btn"
               >
                 <Edit3 size={14} /> Edit Buyback
               </button>
             )}
-            <button className="btn btn-secondary" onClick={onClose} style={{ minHeight: '38px' }}>
+            <button className="btn btn-secondary" onClick={onClose} style={{ minHeight: '38px' }} id="close-buyback-modal-btn">
               Close
             </button>
           </div>
@@ -464,6 +503,32 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onE
         initialIndex={viewerState.initialIndex}
         category={viewerState.category}
         onClose={() => setViewerState(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveConfirm}
+        onClose={() => !isArchiving && setShowArchiveConfirm(false)}
+        onConfirm={handleArchive}
+        title="Archive this buyback record?"
+        message="This will move the record out of active Buybacks and into Archived records."
+        confirmText="Archive"
+        cancelText="Cancel"
+        danger={false}
+        loading={isArchiving}
+      />
+
+      {/* Unarchive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showUnarchiveConfirm}
+        onClose={() => !isUnarchiving && setShowUnarchiveConfirm(false)}
+        onConfirm={handleUnarchive}
+        title="Unarchive this buyback record?"
+        message="This will restore the record to active Buybacks. If the device is unsold, it will be restored to available inventory."
+        confirmText="Unarchive"
+        cancelText="Cancel"
+        danger={false}
+        loading={isUnarchiving}
       />
 
       {/* Delete Confirmation Modal */}
