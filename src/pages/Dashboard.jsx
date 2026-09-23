@@ -82,17 +82,18 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
     <div className="page-wrapper animate-fade-in">
       {/* Top Banner / Welcome */}
       <div
+        className="page-header-responsive"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '24px'
+          gap: '12px',
+          marginBottom: '20px'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             Inventory Dashboard
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>
@@ -100,10 +101,11 @@ export const Dashboard = ({ setCurrentTab, onSelectDevice }) => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="page-header-actions" style={{ display: 'flex', gap: '10px' }}>
           <button
             className="btn btn-primary"
             onClick={() => setCurrentTab('add')}
+            id="dashboard-add-phone-btn"
           >
             <PlusCircle size={16} />
             Add New Phone

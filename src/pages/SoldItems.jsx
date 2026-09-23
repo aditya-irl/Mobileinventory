@@ -88,30 +88,34 @@ export const SoldItems = () => {
     <div className="page-wrapper animate-fade-in">
       {/* Page Header */}
       <div
+        className="page-header-responsive"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '20px'
+          gap: '12px',
+          marginBottom: '16px'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800 }}>Sold Devices & Sales Ledger</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Sold Devices &amp; Sales Ledger</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>
             Track closed sales, customer invoices, and realized profit margins.
           </p>
         </div>
 
-        <button
-          className="btn btn-secondary"
-          onClick={() => exportSalesReportToCSV(filteredSold)}
-          disabled={!filteredSold.length}
-        >
-          <Download size={15} />
-          Export Sales CSV
-        </button>
+        <div className="page-header-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={() => exportSalesReportToCSV(filteredSold)}
+            disabled={!filteredSold.length}
+            id="sold-export-btn"
+          >
+            <Download size={15} />
+            Export Sales CSV
+          </button>
+        </div>
       </div>
 
       {/* Metrics Row */}

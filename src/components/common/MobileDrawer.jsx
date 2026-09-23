@@ -219,6 +219,7 @@ export const MobileDrawer = ({ isOpen, onClose, currentTab, setCurrentTab, onNew
                 type="button"
                 onClick={() => handleSelect(item.id)}
                 id={`drawer-nav-${item.id}`}
+                className="drawer-nav-item"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -231,7 +232,7 @@ export const MobileDrawer = ({ isOpen, onClose, currentTab, setCurrentTab, onNew
                   fontWeight: isActive ? 700 : 500,
                   fontSize: '0.9rem',
                   cursor: 'pointer',
-                  minHeight: '44px',
+                  minHeight: '48px',
                   textAlign: 'left',
                   width: '100%'
                 }}

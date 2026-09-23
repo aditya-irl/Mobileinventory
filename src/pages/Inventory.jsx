@@ -29,6 +29,7 @@ export const Inventory = ({ setCurrentTab, selectedDeviceFromDash, onClearSelect
     settings
   } = useInventory();
 
+  // Use card view as default on mobile; detect via useState init
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'cards'
   const [selectedDevice, setSelectedDevice] = useState(selectedDeviceFromDash || null);
   const [editingDevice, setEditingDevice] = useState(null);
@@ -46,25 +47,27 @@ export const Inventory = ({ setCurrentTab, selectedDeviceFromDash, onClearSelect
     <div className="page-wrapper animate-fade-in">
       {/* Page Header */}
       <div
+        className="page-header-responsive"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '20px'
+          gap: '12px',
+          marginBottom: '16px'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.65rem', fontWeight: 800 }}>Mobile Inventory</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Mobile Inventory</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '2px' }}>
-            Showing {filteredInventory.length} {filteredInventory.length === 1 ? 'phone' : 'phones'} in catalog.
+            {filteredInventory.length} {filteredInventory.length === 1 ? 'phone' : 'phones'} in catalog.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {/* View Mode Toggle (Table / Card) */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* View Mode Toggle (Table / Card) — Desktop only, on mobile always shows cards */}
           <div
+            className="hide-mobile"
             style={{
               display: 'flex',
               backgroundColor: 'var(--bg-subtle)',
@@ -114,15 +117,18 @@ export const Inventory = ({ setCurrentTab, selectedDeviceFromDash, onClearSelect
             className="btn btn-secondary"
             onClick={() => exportInventoryToCSV(filteredInventory)}
             disabled={!filteredInventory.length}
+            id="inventory-export-csv-btn"
           >
             <Download size={15} />
             <span className="hide-mobile">Export CSV</span>
+            <span className="show-mobile-only" style={{ display: 'none' }}>Export</span>
           </button>
 
           {/* Add Phone CTA */}
           <button
             className="btn btn-primary"
             onClick={() => setCurrentTab('add')}
+            id="add-phone-btn"
           >
             <PlusCircle size={16} />
             Add Phone

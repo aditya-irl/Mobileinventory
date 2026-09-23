@@ -12,7 +12,7 @@ import {
   HardDrive,
   Database,
   AlertCircle,
-  MoreVertical
+  Menu
 } from 'lucide-react';
 
 export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer }) => {
@@ -256,7 +256,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
           </button>
         )}
 
-        {/* Mobile Top-Right ⋮ Navigation Menu Button */}
+        {/* Mobile Hamburger ☰ Navigation Menu Button */}
         <button
           type="button"
           onClick={onOpenDrawer}
@@ -279,7 +279,7 @@ export const Header = ({ onSearchFocus, currentTab, setCurrentTab, onOpenDrawer 
           aria-label="Open navigation menu"
           id="mobile-nav-toggle-btn"
         >
-          <MoreVertical size={22} />
+          <Menu size={22} />
         </button>
       </div>
     </header>
