@@ -105,7 +105,7 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onU
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="modal-content"
+        className="modal-content purchase-details-modal"
         style={{ maxWidth: '780px' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -420,78 +420,157 @@ export const PurchaseDetailsModal = ({ purchase, isOpen, onClose, onArchive, onU
         </div>
 
         {/* Modal Footer */}
-        <div
-          className="modal-footer"
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
-            {isArchived ? (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowUnarchiveConfirm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
-                id="unarchive-buyback-btn"
-              >
-                <RotateCcw size={14} />
-                Unarchive Record
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowArchiveConfirm(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
-                id="archive-buyback-btn"
-              >
-                <Archive size={14} />
-                Archive Record
-              </button>
-            )}
+        <div className="modal-footer purchase-modal-footer">
+          {/* Desktop Footer View (Preserved intact for >= 768px) */}
+          <div className="purchase-footer-desktop">
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {isArchived ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowUnarchiveConfirm(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
+                  id="desktop-unarchive-buyback-btn"
+                >
+                  <RotateCcw size={14} />
+                  Unarchive Record
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowArchiveConfirm(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '5px', minHeight: '38px' }}
+                  id="desktop-archive-buyback-btn"
+                >
+                  <Archive size={14} />
+                  Archive Record
+                </button>
+              )}
 
-            <button
-              type="button"
-              className="btn btn-subtle btn-sm"
-              onClick={() => setShowDeleteConfirm(true)}
-              style={{
-                color: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                minHeight: '38px',
-                backgroundColor: 'rgba(239, 68, 68, 0.08)'
-              }}
-              title="Remove Customer Record from App"
-              id="remove-buyback-btn"
-            >
-              <Trash2 size={14} /> Remove from App
-            </button>
+              <button
+                type="button"
+                className="btn btn-subtle btn-sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  minHeight: '38px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)'
+                }}
+                title="Remove Customer Record from App"
+                id="desktop-remove-buyback-btn"
+              >
+                <Trash2 size={14} /> Remove from App
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {!isArchived && onEdit && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    onClose();
+                    onEdit(purchase);
+                  }}
+                  style={{ minHeight: '38px' }}
+                  id="desktop-edit-buyback-btn"
+                >
+                  <Edit3 size={14} /> Edit Buyback
+                </button>
+              )}
+              <button className="btn btn-secondary" onClick={onClose} style={{ minHeight: '38px' }} id="desktop-close-buyback-modal-btn">
+                Close
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }}>
-            {!isArchived && onEdit && (
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  onClose();
-                  onEdit(purchase);
-                }}
-                style={{ minHeight: '38px' }}
-                id="edit-buyback-btn"
-              >
-                <Edit3 size={14} /> Edit Buyback
-              </button>
+          {/* Mobile Footer View (< 768px: Compact & Intentional Hierarchy) */}
+          <div className="purchase-footer-mobile">
+            {isArchived ? (
+              /* Archived Buyback: Unarchive (primary full) -> Remove (destructive full) -> Close (full) */
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary purchase-action-primary"
+                  onClick={() => setShowUnarchiveConfirm(true)}
+                  id="unarchive-buyback-btn"
+                >
+                  <RotateCcw size={16} />
+                  <span>Unarchive Record</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn purchase-action-danger purchase-action-full"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  id="remove-buyback-btn"
+                >
+                  <Trash2 size={15} />
+                  <span>Remove from App</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary purchase-action-close"
+                  onClick={onClose}
+                  id="close-buyback-modal-btn"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              /* Active Buyback: Edit (primary full) -> [Archive | Remove] (2-col) -> Close (full) */
+              <>
+                {onEdit && (
+                  <button
+                    type="button"
+                    className="btn btn-primary purchase-action-primary"
+                    onClick={() => {
+                      onClose();
+                      onEdit(purchase);
+                    }}
+                    id="edit-buyback-btn"
+                  >
+                    <Edit3 size={16} />
+                    <span>Edit Buyback</span>
+                  </button>
+                )}
+
+                <div className="purchase-action-secondary-row">
+                  <button
+                    type="button"
+                    className="btn btn-secondary purchase-action-secondary"
+                    onClick={() => setShowArchiveConfirm(true)}
+                    id="archive-buyback-btn"
+                  >
+                    <Archive size={15} />
+                    <span>Archive Record</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn purchase-action-danger"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    id="remove-buyback-btn"
+                  >
+                    <Trash2 size={15} />
+                    <span>Remove from App</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary purchase-action-close"
+                  onClick={onClose}
+                  id="close-buyback-modal-btn"
+                >
+                  Close
+                </button>
+              </>
             )}
-            <button className="btn btn-secondary" onClick={onClose} style={{ minHeight: '38px' }} id="close-buyback-modal-btn">
-              Close
-            </button>
           </div>
         </div>
       </div>

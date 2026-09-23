@@ -392,6 +392,18 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 10;
 }
 
+.purchase-footer-desktop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.purchase-footer-mobile {
+  display: none;
+}
+
 /* Tables */
 .table-container {
   width: 100%;
@@ -929,6 +941,157 @@ h1, h2, h3, h4, h5, h6 {
   .show-mobile-only {
     display: block !important;
   }
+
+  /* ---- PURCHASE DETAILS MODAL MOBILE ACTION FOOTER ---- */
+  .purchase-details-modal {
+    max-height: 92dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .purchase-details-modal .modal-header {
+    flex-shrink: 0 !important;
+    padding: 14px 16px 12px !important;
+  }
+
+  .purchase-details-modal .modal-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 14px 16px !important;
+  }
+
+  .purchase-modal-footer {
+    flex-shrink: 0 !important;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--bg-surface) !important;
+    border-top: 1px solid var(--border-subtle) !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 10 !important;
+  }
+
+  .purchase-footer-desktop {
+    display: none !important;
+  }
+
+  .purchase-footer-mobile {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* 1. Primary Action: Edit Buyback / Unarchive Record */
+  .purchase-action-primary {
+    width: 100% !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    font-size: 0.9375rem !important;
+    font-weight: 700 !important;
+    border-radius: var(--radius-md) !important;
+    background-color: var(--primary-600) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25) !important;
+  }
+
+  .purchase-action-primary:active {
+    transform: scale(0.98);
+    background-color: var(--primary-700) !important;
+  }
+
+  /* 2. Secondary Row: Archive + Remove (Side-by-Side 2 Columns) */
+  .purchase-action-secondary-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .purchase-action-secondary-row .btn {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* Secondary Action: Archive Record (Neutral Outlined) */
+  .purchase-action-secondary {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--radius-md) !important;
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-strong) !important;
+    padding: 0 8px !important;
+    white-space: nowrap !important;
+  }
+
+  .purchase-action-secondary:active {
+    background-color: var(--bg-subtle) !important;
+    transform: scale(0.98);
+  }
+
+  /* Destructive Action: Remove from App (Subtle Red) */
+  .purchase-action-danger {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--radius-md) !important;
+    background-color: rgba(239, 68, 68, 0.08) !important;
+    color: #dc2626 !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    padding: 0 8px !important;
+    white-space: nowrap !important;
+  }
+
+  .purchase-action-danger:active {
+    background-color: rgba(239, 68, 68, 0.16) !important;
+    transform: scale(0.98);
+  }
+
+  .purchase-action-danger.purchase-action-full {
+    width: 100% !important;
+  }
+
+  /* 3. Close Action: Neutral Secondary */
+  .purchase-action-close {
+    width: 100% !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--radius-md) !important;
+    background-color: var(--bg-subtle) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+  }
+
+  .purchase-action-close:active {
+    background-color: var(--border-subtle) !important;
+    transform: scale(0.98);
+  }
 }
 
 /* Fine-tune for very narrow phones (320px) */
@@ -950,5 +1113,12 @@ h1, h2, h3, h4, h5, h6 {
   .horizontal-scroll-chips .btn {
     font-size: 0.72rem !important;
     padding: 7px 10px !important;
+  }
+
+  .purchase-action-secondary,
+  .purchase-action-danger {
+    font-size: 0.75rem !important;
+    gap: 4px !important;
+    padding: 0 4px !important;
   }
 }
